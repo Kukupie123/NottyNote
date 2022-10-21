@@ -3,6 +3,9 @@ package kuku.advbkm.gateway.configs.Security;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.authority.AuthorityUtils;
 
+/**
+ * Class that extends AbstractAuthenticationToken and returns JWT token on the overridden methods
+ */
 public class BearerToken extends AbstractAuthenticationToken {
     private String token;
 

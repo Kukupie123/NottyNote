@@ -14,6 +14,11 @@ import java.sql.Date;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
+/**
+ * Core JWT Services such as generating JWT token based on username,
+ * Getting username,
+ * Validating token.
+ */
 @Service
 public class JWTService {
 

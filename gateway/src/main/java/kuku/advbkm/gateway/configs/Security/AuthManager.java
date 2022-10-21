@@ -13,6 +13,12 @@ import reactor.core.publisher.Mono;
 /*
 Note to self : Understand Map and FlatMap properly. They are so confusing
  */
+
+/**
+ * Security Note 4 :
+ * Authenticates the BearerToken returned from AuthConverter inside the "authenticate" function and returns a UsernamePasswordAuthenticationToken
+ * This function is also going to be using JWTService to validate and get the username
+ */
 @Component
 public class AuthManager implements ReactiveAuthenticationManager {
     final
