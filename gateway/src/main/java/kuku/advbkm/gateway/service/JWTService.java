@@ -40,9 +40,10 @@ public class JWTService {
 
     public String getUserName(String token) {
         //Subject is where we store the username
-        return parser
+        var a = parser
                 .parseClaimsJws(token)
                 .getBody().getSubject();
+        return a;
 
 
     }
@@ -52,6 +53,8 @@ public class JWTService {
                 .parseClaimsJws(token).
                 getBody();
         boolean unexpired = claims.getExpiration().after(Date.from(Instant.now()));
+
+        System.out.println(unexpired);
 
         return unexpired && user.getUsername().equals(claims.getSubject());
     }
