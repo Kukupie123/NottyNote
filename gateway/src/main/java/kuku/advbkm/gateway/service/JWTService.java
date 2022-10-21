@@ -54,7 +54,6 @@ public class JWTService {
                 getBody();
         boolean unexpired = claims.getExpiration().after(Date.from(Instant.now()));
 
-        System.out.println(unexpired);
 
         return unexpired && user.getUsername().equals(claims.getSubject());
     }

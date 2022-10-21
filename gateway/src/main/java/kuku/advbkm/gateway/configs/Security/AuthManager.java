@@ -10,6 +10,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
+/*
+Note to self : Understand Map and FlatMap properly. They are so confusing
+ */
 @Component
 public class AuthManager implements ReactiveAuthenticationManager {
     final
@@ -27,7 +30,7 @@ public class AuthManager implements ReactiveAuthenticationManager {
                         authentication
                 )
                 .cast(BearerToken.class)
-                .map(auth -> validate(auth))
+                .flatMap(auth -> validate(auth)) // I used map earlier and it didn't work well with validate function. As i failed to figure out how to return a non mono object in validate function. So I had to make it return Mono<Auth> instead of Auth
                 .onErrorMap(err -> new AuthenticationException(err.getMessage()) {
                     @Override
                     public String getMessage() {
@@ -36,12 +39,11 @@ public class AuthManager implements ReactiveAuthenticationManager {
                 });
     }
 
-    private Authentication validate(BearerToken token) {
+    private Mono<Authentication> validate(BearerToken token) {
         String userName = jwtService.getUserName(token.getCredentials()); //gets us the username, Check bearer token class to confirm
         Mono<UserDetails> user = users.findByUsername(userName);
-
-        //We map when ever we want to get a value of a mono. We are casting the return value to authentication as it is what we get. We also throw exception if token is invalid
-        return user.map(ud -> {
+        //Originally I planned to return an UsernamePasswordAuthenticationToken object but it just wasn't working so I ended up changing the return type to Mono<Authentication>
+        Mono<Authentication> result = user.map(ud -> {
             //Check if credentials are valid
             if (jwtService.isValid(token.getCredentials(), ud)) {
                 return new UsernamePasswordAuthenticationToken(ud.getUsername(), ud.getPassword(), ud.getAuthorities());
@@ -49,6 +51,8 @@ public class AuthManager implements ReactiveAuthenticationManager {
             throw new IllegalArgumentException("Invalid Token");
 
         });
+
+        return result;
 
     }
 }
