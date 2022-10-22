@@ -53,13 +53,13 @@ public class JWTService {
 
     }
 
-    public boolean isValid(String token, UserDetails user) {
+    public boolean isValid(String token, String userName) {
         Claims claims = parser
                 .parseClaimsJws(token).
                 getBody();
         boolean unexpired = claims.getExpiration().after(Date.from(Instant.now()));
 
 
-        return unexpired && user.getUsername().equals(claims.getSubject());
+        return unexpired && userName.equals(claims.getSubject());
     }
 }

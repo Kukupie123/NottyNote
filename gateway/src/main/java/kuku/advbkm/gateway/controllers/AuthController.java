@@ -4,6 +4,7 @@ package kuku.advbkm.gateway.controllers;
 import kuku.advbkm.gateway.models.ReqRespBodies.RequestUserLogin;
 import kuku.advbkm.gateway.models.ReqRespModel.ReqRespModel;
 import kuku.advbkm.gateway.service.JWTService;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -25,16 +26,19 @@ public class AuthController {
     final PasswordEncoder passwordEncoder;
     final ReactiveUserDetailsService userService;
     final JWTService jwtService;
+    @Qualifier("dummy_userDetails") //Makes sure that we get the correct bean
+    final UserDetails dummyUserDetail; //Dummy UserDetails Bean that we created in configs.beans.DummyBeans to use in functions below
 
-    public AuthController(PasswordEncoder passwordEncoder, ReactiveUserDetailsService userService, JWTService jwtService) {
+    public AuthController(PasswordEncoder passwordEncoder, ReactiveUserDetailsService userService, JWTService jwtService, UserDetails dummyUserDetail) {
         this.passwordEncoder = passwordEncoder;
         this.userService = userService;
         this.jwtService = jwtService;
+        this.dummyUserDetail = dummyUserDetail;
     }
 
     @PostMapping("/reg")
     public Mono<ResponseEntity<ReqRespModel<Boolean>>> register() {
-        return Mono.just(
+        return Mono.justOrEmpty(
                 ResponseEntity.ok(new ReqRespModel<>("Successful", true))
         );
     }
@@ -42,26 +46,27 @@ public class AuthController {
 
     @PostMapping("/login")
     public Mono<ResponseEntity<ReqRespModel<String>>> login(@RequestBody RequestUserLogin userLogin) {
+        //find the user and if not found create an anonymous class
+        Mono<UserDetails> user = userService.findByUsername(userLogin.getEmail()).defaultIfEmpty(dummyUserDetail);
 
-        //find the user and set the default to null if not found
-        Mono<UserDetails> user = userService.findByUsername(userLogin.getEmail()).defaultIfEmpty(null);
+        //Transform UserDetail Mono to response entity as well as handle exception which might have occoured due to internal process
+        var userMap = user.map(u -> {
+                    //Check if user was found
+                    if (u.getUsername() == null) {
+                        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ReqRespModel<>("User not registered", ""));
+                    }
+                    //Check if password and username matches
+                    if (u.getUsername().equals(userLogin.getEmail()) && passwordEncoder.matches(userLogin.getPassword(), u.getPassword())) {
+                        return ResponseEntity.ok(new ReqRespModel<>(jwtService.generate(u.getUsername()), "Success"));
+                    }
 
-        return user.flatMap(userDetails -> {
-            //Check if user was found
-            if (userDetails != null) {
-                //Since user was found check if the password was correct
-                if (passwordEncoder.matches(userLogin.getPassword(), userDetails.getPassword())) {
-                    return Mono.just(
-                            ResponseEntity.ok(
-                                    new ReqRespModel<>("Successful", jwtService.generate(userDetails.getUsername()
-                                    )))
-                    ).onErrorResume(err -> {
-                        return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ReqRespModel<>(err.getMessage(), null)));
-                    });
-                }
-            }
-            return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ReqRespModel<>("Invalid credentials", null)));
-        });
+                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ReqRespModel<>("Wrong Credentials", ""));
+                })
+                .onErrorResume(e -> {
+                    return Mono.just(ResponseEntity.internalServerError().body(new ReqRespModel<>(e.getMessage(), "")));
+                });
+
+        return userMap;
 
     }
 
