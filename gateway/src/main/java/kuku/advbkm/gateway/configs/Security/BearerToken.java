@@ -7,7 +7,7 @@ import org.springframework.security.core.authority.AuthorityUtils;
  * Class that extends AbstractAuthenticationToken and returns JWT token on the overridden methods
  */
 public class BearerToken extends AbstractAuthenticationToken {
-    private String token;
+    private final String token;
 
     public BearerToken(String token) {
 

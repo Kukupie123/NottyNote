@@ -2,11 +2,15 @@ package kuku.advbkm.gateway.models.ReqRespModel;
 
 
 import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 
 @AllArgsConstructor
-public class ReqRespModel<T> implements IReqRespModel<T> {
-    private String msg;
+@NoArgsConstructor
+public class ReqResp<T> implements IReqRespModel<T> {
+
     private T data;
+    private String msg;
+
 
     @Override
     public String getMsg() {

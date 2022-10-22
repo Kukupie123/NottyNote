@@ -5,7 +5,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.ReactiveUserDetailsService;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
@@ -25,12 +24,12 @@ public class AuthManager implements ReactiveAuthenticationManager {
     final UserDetails dummyUserDetails;
     final
     JWTService jwtService; //Add final keyword, or they are not taken into consideration during dependency injection
-    final ReactiveUserDetailsService users;
+    final MongoUSerDetailService mongoUserDetailService;
 
-    public AuthManager(UserDetails dummyUserDetails, JWTService jwtService, ReactiveUserDetailsService users) {
+    public AuthManager(UserDetails dummyUserDetails, JWTService jwtService, MongoUSerDetailService mongoUserDetailService) {
         this.dummyUserDetails = dummyUserDetails;
         this.jwtService = jwtService;
-        this.users = users;
+        this.mongoUserDetailService = mongoUserDetailService;
     }
 
     @Override
@@ -44,7 +43,7 @@ public class AuthManager implements ReactiveAuthenticationManager {
                 //Then we are going to transform/change/mutate the authentication object. Here, We will validate in our own way and return a Mono<Authentication>
                 .flatMap(auth -> { //Why did we use flatmap? Because if we don't the return type becomes Mono<Mono<Object>> instead of Mono<Authentication> as Map covers the return type with a Mono
                     String userName = jwtService.getUserName(auth.getCredentials());
-                    Mono<UserDetails> user = users.findByUsername(userName).defaultIfEmpty(dummyUserDetails);
+                    Mono<UserDetails> user = mongoUserDetailService.findByUsername(userName).defaultIfEmpty(dummyUserDetails);
 
                     //Why do we use flatmap? Because If we map to transform an object we can't return Mono.error as this will change the type to Mono<Mono<Exception>>
                     //But we need Mono<Authentication>

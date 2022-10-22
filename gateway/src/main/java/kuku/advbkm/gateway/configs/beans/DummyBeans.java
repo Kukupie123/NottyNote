@@ -1,11 +1,8 @@
 package kuku.advbkm.gateway.configs.beans;
 
+import kuku.advbkm.gateway.configs.Security.MongoUserDetails;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
-
-import java.util.Collection;
 
 /**
  * Beans that are going to be dummy values.
@@ -13,43 +10,8 @@ import java.util.Collection;
  */
 @Configuration
 public class DummyBeans {
-    @Bean(name = "dummy_userDetails")
-    public UserDetails dummyUserDetails() {
-        return new UserDetails() {
-            @Override
-            public Collection<? extends GrantedAuthority> getAuthorities() {
-                return null;
-            }
-
-            @Override
-            public String getPassword() {
-                return null;
-            }
-
-            @Override
-            public String getUsername() {
-                return null;
-            }
-
-            @Override
-            public boolean isAccountNonExpired() {
-                return false;
-            }
-
-            @Override
-            public boolean isAccountNonLocked() {
-                return false;
-            }
-
-            @Override
-            public boolean isCredentialsNonExpired() {
-                return false;
-            }
-
-            @Override
-            public boolean isEnabled() {
-                return false;
-            }
-        };
+    @Bean(name = "dummy_MongoUserDetails")
+    public MongoUserDetails dummyUserDetails() {
+        return new MongoUserDetails(null,null,null,null);
     }
 }

@@ -5,12 +5,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
-import org.springframework.security.core.userdetails.MapReactiveUserDetailsService;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
 
@@ -29,30 +25,20 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    //Users list temp, to be replaced with actual users from database
+
+    //Our custom implementation of getting records from our database for authentication
     @Bean
-    public MapReactiveUserDetailsService userDetailsService(PasswordEncoder encoder) {
-        UserDetails user = User.builder() //Build user
-                .username("kuku")
-                .password(encoder.encode("kuku"))
-                .roles("USER")
-                .build();
-
-        //Create new obj and pass the user as arg
-        return new MapReactiveUserDetailsService(user);
-
+    MongoUSerDetailService userDetailService() {
+        //Used by AuthManager class to get user from db service
+        return new MongoUSerDetailService();
     }
 
 
-    //Replaces the default SecurityFilterChain, this is where we setup how the security is going to be configured
+    //Replaces the default SecurityFilterChain, this is where we set up how the security is going to be configured
     //The arguments are passed by Spring's Dependency Injection
 
     /**
      * Security Note 1 : This bean is going to override the default security config. We set the rules and configs of the security here.
-     * @param http
-     * @param jwtAuthManager
-     * @param jwtAuthConverter
-     * @return
      */
     @Bean
     public SecurityWebFilterChain securityFilterChain(ServerHttpSecurity http, AuthManager jwtAuthManager, AuthConverter jwtAuthConverter) {
@@ -66,8 +52,8 @@ public class SecurityConfig {
         jwtFilter.setServerAuthenticationConverter(jwtAuthConverter);
         return http
                 .authorizeExchange(auth -> { //Setting up authorization of uri
-                    auth.pathMatchers(HttpMethod.POST, "/login").permitAll(); //Everyone is allowed to enter these two uri
-                    auth.pathMatchers(HttpMethod.POST, "/reg").permitAll();
+                    auth.pathMatchers(HttpMethod.POST, "/api/v1/gate/auth/login").permitAll(); //Everyone is allowed to enter these two uri
+                    auth.pathMatchers(HttpMethod.POST, "/api/v1/gate/auth/reg").permitAll();
                     auth.anyExchange().authenticated(); //Rest of the endpoint needs to be authenticated
                 })
                 .addFilterAt(jwtFilter, SecurityWebFiltersOrder.AUTHENTICATION)
@@ -84,23 +70,26 @@ public class SecurityConfig {
 
 /*
 How Spring security with JWT works
-1. Firstly we need to have a webfluxsecurity class like this
-It is going to have a bean which returns SecurityWebFilterChain which is going to override the default securityFilterChain we have
+Things to know.
+Our MongoDB is where users record are stored. It is handled by db service so we need to talk to it to get users list
 
-2. We are going to setup the rules and other stuff in this function
-3. We are going to add a filter at authentication level
+Class we need to create
+MongoUserDetails bean will implement userDetails and override the function to return the correct data
 
-4. To be able to create a filter we need to create our own AuthenticationConverter
+Beans
+MongoUserDetailsService will implement ReactiveUserDetailsService and override function that is going to return a UserDetail.
+This is where we need to talk to backend to get userinfo from db service and convert it into MongoUserDetails and return it
 
-It is going to be responsible for extracting the token from the authorization header and returning a class that is a child of AbstractAuthenticationToken
+Service : DBService is going to handle talking to db service, parsing response and returning back MongoUserDetails
 
-5.The abstractAuthToken can be skipped if we create anonymous class on the go inside the functions
 
-6.After creating the AuthConverter we are going to create the AuthenticationManager class that is going to be validating the details extracted from the authconverter
-What we need to know is that the parameter is going to be of the same type as the one we returned in AuthConverter which is BearerToken in our case
-Inside this class's function we are going to use JWT functions that we created to validate and getUserName
+1. We need to create SecurityFilter and create a filter along with other configs
+2. Create custom AuthConverter class that will extract JWT token from auth header
+3. Create AuthManager that is going to make use to authConverter to get userName.
+We then use this on our bean MongoUserDetailsService and get back a MongoUserDetail.
 
-7. Now we can continue creating our filter and adding it to the configuration as done here.
+We can then validate the token as well as the userDetail
+
 
 
  */

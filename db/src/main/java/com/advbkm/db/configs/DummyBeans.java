@@ -14,6 +14,6 @@ public class DummyBeans {
      */
     @Bean("dummy_EntityUser")
     public EntityUser dummyBean() {
-        return new EntityUser(null, null, null);
+        return new EntityUser(null, null, null, null);
     }
 }
