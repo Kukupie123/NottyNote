@@ -27,11 +27,16 @@ public class UserController {
 
     @PostMapping("/reg")
     public Mono<ResponseEntity<ReqResp<Boolean>>> register(@RequestBody ReqRegisterUser user) {
-        Mono<EntityUser> monoUser = userRepo.save(new EntityUser(user.getEmail(), user.getPassword(), user.getName(), "user"))
-                .onErrorReturn(dummyBean) //if we face an error we want to return a dummy EntityUser obj
+        user.setType("USER");
+        System.out.println("Registering user :" + user);
+        //IMPORTANT : When you try to save EntityUser without a converter the ID(email) is converted into ObjectID instead of being saved as a string
+        Mono<EntityUser> monoUser = userRepo.insert(new EntityUser(user.getEmail(), user.getPassword(), user.getName(), user.getType()))
+                .onErrorMap(err -> new Exception(err.getMessage()))
                 .defaultIfEmpty(dummyBean); //Same as above
 
         return monoUser.map(u -> {
+            System.out.println(u);
+
             if (u.getEmail() == null) {
                 //Invalid object
                 return ResponseEntity.internalServerError().body(new ReqResp<>(false, "Something went wrong"));

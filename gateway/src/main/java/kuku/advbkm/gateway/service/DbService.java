@@ -14,6 +14,7 @@ public class DbService {
 
     /**
      * Talks to db service and returns user if found.
+     *
      * @return Type will be of ResponseEntity of MongoUserDetails. The caller's duty will be of handling
      */
     public Mono<ResponseEntity<ReqResp<MongoUserDetails>>> getUser(String id) {
@@ -28,11 +29,12 @@ public class DbService {
             Mono<ReqResp> mud = res.bodyToMono(ReqResp.class);
 
             Mono<ResponseEntity<ReqResp<MongoUserDetails>>> transformedMud = mud.map(e -> {
+
                 if (!res.statusCode().is2xxSuccessful()) {
                     return ResponseEntity.status(res.rawStatusCode()).body(new ReqResp<>(null, ""));
                 }
 
-                var mappedData = (LinkedHashMap) e.getData(); // The data is going to be set to linked hast map type so we cast it
+                var mappedData = (LinkedHashMap) e.getData(); // The data is going to be set to linked hast map type, so we cast it.
                 var castedData = new MongoUserDetails((String) mappedData.get("email"), (String) mappedData.get("password"), (String) mappedData.get("name"), (String) mappedData.get("type"));
 
                 return ResponseEntity.status(res.rawStatusCode())
@@ -44,6 +46,25 @@ public class DbService {
         });
 
         return transformedResponse;
+
+    }
+
+    public Mono<ResponseEntity<ReqResp<Boolean>>> addUser(MongoUserDetails user) {
+        WebClient client = WebClient.create("http://localhost:8000/api/v1/db/user/reg");
+        var transformedResp = client.post().bodyValue(user)
+                .exchangeToMono(resp -> {
+                    Mono<ReqResp> body = resp.bodyToMono(ReqResp.class);
+
+                    Mono<ResponseEntity<ReqResp<Boolean>>> transformedBody = body.map(b -> {
+                        boolean castedData = (Boolean) b.getData();
+                        return ResponseEntity.status(resp.rawStatusCode()).body(new ReqResp<>(castedData, b.getMsg()));
+                    });
+
+                    return transformedBody;
+                });
+
+
+        return transformedResp;
 
     }
 }

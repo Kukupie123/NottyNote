@@ -3,14 +3,17 @@ package com.advbkm.db.models.entities;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.springframework.data.annotation.Id;
+import lombok.Setter;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.FieldType;
+import org.springframework.data.mongodb.core.mapping.MongoId;
 
 @AllArgsConstructor
 @Getter
+@Setter
 @Document(collection = "Users")
 public class EntityUser {
-    @Id
+    @MongoId(targetType = FieldType.STRING,value = FieldType.STRING)
     private String email;
 
     private String password;

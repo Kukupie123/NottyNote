@@ -2,8 +2,10 @@ package kuku.advbkm.gateway.controllers;
 
 
 import kuku.advbkm.gateway.configs.Security.MongoUSerDetailService;
+import kuku.advbkm.gateway.configs.Security.MongoUserDetails;
 import kuku.advbkm.gateway.models.ReqRespBodies.RequestUserLogin;
 import kuku.advbkm.gateway.models.ReqRespModel.ReqResp;
+import kuku.advbkm.gateway.service.DbService;
 import kuku.advbkm.gateway.service.JWTService;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
@@ -24,21 +26,26 @@ public class AuthController {
     final PasswordEncoder passwordEncoder;
     final MongoUSerDetailService userService;
     final JWTService jwtService;
+    final DbService dbService;
     @Qualifier("dummy_MongoUserDetails") //Makes sure that we get the correct bean
     final UserDetails dummyUserDetail; //Dummy UserDetails Bean that we created in configs.beans.DummyBeans to use in functions below
 
-    public AuthController(PasswordEncoder passwordEncoder, MongoUSerDetailService userService, JWTService jwtService, UserDetails dummyUserDetail) {
+    public AuthController(PasswordEncoder passwordEncoder, MongoUSerDetailService userService, JWTService jwtService, DbService dbService, UserDetails dummyUserDetail) {
         this.passwordEncoder = passwordEncoder;
         this.userService = userService;
         this.jwtService = jwtService;
+        this.dbService = dbService;
         this.dummyUserDetail = dummyUserDetail;
     }
 
     @PostMapping("/reg")
-    public Mono<ResponseEntity<ReqResp<Boolean>>> register() {
-        return Mono.justOrEmpty(
-                ResponseEntity.ok(new ReqResp<>(true, "Success"))
-        );
+    public Mono<ResponseEntity<ReqResp<Boolean>>> register(@RequestBody MongoUserDetails user) {
+        System.out.println(String.format("Registering : %s", user));
+
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+
+        //We are expecting email,name,password. The type is going to be set by db service
+        return dbService.addUser(user);
     }
 
 
@@ -68,11 +75,7 @@ public class AuthController {
 
     @GetMapping("/user")
     public Mono<ResponseEntity<ReqResp<String>>> user(@AuthenticationPrincipal Principal p) {
-        return Mono.just(
-                ResponseEntity.ok(
-                        new ReqResp<>("", p.getName())
-                )
-        );
+        return Mono.just(ResponseEntity.ok(new ReqResp<>("", p.getName())));
 
     }
 

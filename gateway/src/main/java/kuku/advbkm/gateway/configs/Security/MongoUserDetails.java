@@ -1,8 +1,7 @@
 package kuku.advbkm.gateway.configs.Security;
 
 
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -15,6 +14,9 @@ import java.util.Collection;
  */
 @AllArgsConstructor
 @NoArgsConstructor
+@Setter
+@Getter //IMPORTANT !!!! Since we are using this as a response/request body as well we need valid getters and setters
+@ToString
 public class MongoUserDetails implements UserDetails {
 
     private String email;
@@ -23,12 +25,17 @@ public class MongoUserDetails implements UserDetails {
     private String name;
     private String type;
 
-    private String getName(){
-        return this.name;
-    }
+
+
+
+
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
+        if (type == null) {
+            //Probably means that we are using the object as a payload for other things rather than as UserDetail
+            return Arrays.asList();
+        }
         //Split by ,
         //Map each result into simpleGrantedAuth object and then convert the stream into collection
         String[] roleSplit = type.split(",");
