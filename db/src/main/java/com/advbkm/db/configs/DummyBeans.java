@@ -10,7 +10,7 @@ public class DummyBeans {
 
 
     /**
-     * Returns a dummy EntityUser object
+     * Returns a dummy EntityUser object which will be used when passing Mono<EntityUsr> but we face an error or get empty result
      */
     @Bean("dummy_EntityUser")
     public EntityUser dummyBean() {

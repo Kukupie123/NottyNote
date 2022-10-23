@@ -3,10 +3,8 @@ package com.advbkm.db.controller;
 
 import com.advbkm.db.models.RequestModels.ReqRegisterUser;
 import com.advbkm.db.models.entities.EntityUser;
-import com.advbkm.db.models.entities.User;
 import com.advbkm.db.models.reqresp.ReqResp;
 import com.advbkm.db.repo.RepoUsers;
-import com.advbkm.db.utils.Converter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -43,7 +41,7 @@ public class UserController {
     }
 
     @GetMapping("/get/{id}")
-    public Mono<ResponseEntity<ReqResp<User>>> getUser(@PathVariable String id) {
+    public Mono<ResponseEntity<ReqResp<EntityUser>>> getUser(@PathVariable String id) {
         System.out.println("Get called");
         Mono<EntityUser> monoUser = userRepo.findById(id).defaultIfEmpty(dummyBean).onErrorReturn(dummyBean);
 
@@ -53,8 +51,7 @@ public class UserController {
                 return ResponseEntity.status(404).body(new ReqResp<>(null, "No user found"));
             }
             System.out.println(" user found with id " + id);
-            User user = Converter.entityUser2User(entityUser);
-            return ResponseEntity.ok(new ReqResp<>(user, "Success"));
+            return ResponseEntity.ok(new ReqResp<>(entityUser, "Success"));
         });
     }
 
