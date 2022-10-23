@@ -16,15 +16,17 @@ Note to self : Understand Map and FlatMap properly. They are so confusing
 /**
  * Security Note 4 :
  * Authenticates the BearerToken returned from AuthConverter inside the "authenticate" function and returns a UsernamePasswordAuthenticationToken
+ *
+ * It also makes use of the MongoUserServiceDetails object to get the user from mongoDB and return a UserDetail which is then further transformed into UsernamePasswordAuthenticationToken
+ *
  * This function is also going to be using JWTService to validate and get the username
  */
 @Component
 public class AuthManager implements ReactiveAuthenticationManager {
     @Qualifier("dummy_userDetails")
-    final UserDetails dummyUserDetails;
-    final
-    JWTService jwtService; //Add final keyword, or they are not taken into consideration during dependency injection
-    final MongoUSerDetailService mongoUserDetailService;
+    final UserDetails dummyUserDetails; //Used when we get error or empty MongoUserDetails
+    final JWTService jwtService; //JWT token validation and getting username
+    final MongoUSerDetailService mongoUserDetailService; //For Talking with DBService and returning a MongoUserDetail of the user we are trying to authenticate
 
     public AuthManager(UserDetails dummyUserDetails, JWTService jwtService, MongoUSerDetailService mongoUserDetailService) {
         this.dummyUserDetails = dummyUserDetails;
@@ -34,19 +36,19 @@ public class AuthManager implements ReactiveAuthenticationManager {
 
     @Override
     public Mono<Authentication> authenticate(Authentication authentication) {
-        //Return a mono OR Empty
+
         return Mono.justOrEmpty(
                         authentication
                 )
-                //Here begins the step of making changes to the mono object, firstly we cast it to BearerToken
+                //Here begins the step of making changes to the mono object, firstly we cast it to BearerToken. Why? Because in AuthConverter we returned a BearerToken object
                 .cast(BearerToken.class)
-                //Then we are going to transform/change/mutate the authentication object. Here, We will validate in our own way and return a Mono<Authentication>
-                .flatMap(auth -> { //Why did we use flatmap? Because if we don't the return type becomes Mono<Mono<Object>> instead of Mono<Authentication> as Map covers the return type with a Mono
-                    String userName = jwtService.getUserName(auth.getCredentials());
-                    Mono<UserDetails> user = mongoUserDetailService.findByUsername(userName).defaultIfEmpty(dummyUserDetails);
+                //Next, we are going to do some processing with the authentication object.
+                .flatMap(auth -> {
+                    //Why did we use flatmap? Because if we don't the return type becomes Mono<Mono<Object>> instead of Mono<Authentication> as Map covers the return type with a Mono
+                    String userName = jwtService.getUserName(auth.getCredentials()); //Get the username using JWT Service
+                    Mono<UserDetails> user = mongoUserDetailService.findByUsername(userName).defaultIfEmpty(dummyUserDetails); //Get MongoUserDetails by using our MongoUserDetailService
 
-                    //Why do we use flatmap? Because If we map to transform an object we can't return Mono.error as this will change the type to Mono<Mono<Exception>>
-                    //But we need Mono<Authentication>
+                    //Why do we use flatmap? Because If we map to transform an object we can't return Mono.error as this will change the type to Mono<Mono<Exception>> But we need Mono<Authentication>
                     Mono<Authentication> userToAuthMap = user.flatMap(u -> {
                         //Check if user is valid
                         if (u.getUsername() == null) {

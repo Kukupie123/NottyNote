@@ -18,8 +18,11 @@ public class MongoUSerDetailService implements ReactiveUserDetailsService {
 
     @Override
     public Mono<UserDetails> findByUsername(String username) {
+        //getUser() returns a Mono<ResponseEntity<ReqResp<MongoUserDetails>>>
+        //We need to transform it to Mono<UserDetails>
         return dbService.getUser(username)
                 .mapNotNull(resp -> {
+                    //If status code is success
                     if (resp.getStatusCode().is2xxSuccessful()) {
                         return Objects.requireNonNull(resp.getBody()).getData();
                     }

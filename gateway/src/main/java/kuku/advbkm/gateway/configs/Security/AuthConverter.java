@@ -12,7 +12,7 @@ import reactor.core.publisher.Mono;
  * Implements the ServerAuthenticationConverter
  * Has a function that is going to be responsible for extraction the token from Authorization header and return a new Authentication Object
  * Which is going to be BearerToken in our case (Go to that class if you want to know a little about it, but it should be self-explanatory),
- * it is a child of AbstractAuthenticationToken which is a child of Authentication and stores the JWT token as it's credentials.
+ * it is a child of AbstractAuthenticationToken which is a child of Authentication and stores the JWT token as its credentials.
  * This object is that we are returning is then going to be passed to AuthenticationManager.
  *
  * Please go to AuthManager for the next Security Note.

@@ -44,7 +44,7 @@ public class SecurityConfig {
     public SecurityWebFilterChain securityFilterChain(ServerHttpSecurity http, AuthManager jwtAuthManager, AuthConverter jwtAuthConverter) {
         //NOTE : The parameters are injected by spring as they have been marked as component/Bean class
 
-        /**
+        /*
          * Security Note 2 : Creating a new filter at Authentication layer and using our own AuthenticationConverter and AuthenticationManager.
          * Please Check AuthConverter for the next note.
          */
@@ -71,25 +71,26 @@ public class SecurityConfig {
 /*
 How Spring security with JWT works
 Things to know.
-Our MongoDB is where users record are stored. It is handled by db service so we need to talk to it to get users list
+Our MongoDB is where users record are stored. It is handled by db service, so we need to talk to it to get users list
 
 Class we need to create
 MongoUserDetails bean will implement userDetails and override the function to return the correct data
 
 Beans
 MongoUserDetailsService will implement ReactiveUserDetailsService and override function that is going to return a UserDetail.
-This is where we need to talk to backend to get userinfo from db service and convert it into MongoUserDetails and return it
+This is where we need to talk to backend to get userinfo from db service and convert it into MongoUserDetails and return it.
+This class will use DBService to talk to db
 
-Service : DBService is going to handle talking to db service, parsing response and returning back MongoUserDetails
+Service : DBService is going to handle talking to db service, parsing response and returning MongoUserDetails
 
 
 1. We need to create SecurityFilter and create a filter along with other configs
 2. Create custom AuthConverter class that will extract JWT token from auth header
-3. Create AuthManager that is going to make use to authConverter to get userName.
-We then use this on our bean MongoUserDetailsService and get back a MongoUserDetail.
-
-We can then validate the token as well as the userDetail
-
+3. Create AuthManager that is going to make use to authConverter.
+In AuthManager we are going to use the extracted token to extract the id of the user
+Once we have it we are going to user our MongoUserDetailsService to get userDetails object
+We will then validate the token and the user we got vs user in the token
+Then we can either throw exception or authenticate the user
 
 
  */
