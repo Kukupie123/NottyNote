@@ -3,7 +3,7 @@ package com.advbkm.db.controller;
 
 import com.advbkm.db.models.entities.EntityUser;
 import com.advbkm.db.models.reqresp.ReqResp;
-import com.advbkm.db.repo.RepoUsers;
+import com.advbkm.db.service.UserService;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,13 +13,14 @@ import reactor.core.publisher.Mono;
 @RequestMapping("/api/v1/db/user")
 public class UserController {
 
-    final private RepoUsers userRepo;
 
     @Qualifier("dummy_EntityUser")
     final private EntityUser dummyBean;
 
-    public UserController(RepoUsers userRepo, EntityUser dummyBean) {
-        this.userRepo = userRepo;
+    final private UserService userService;
+
+    public UserController(EntityUser dummyBean, UserService userService) {
+        this.userService = userService;
         this.dummyBean = dummyBean;
     }
 
@@ -29,9 +30,7 @@ public class UserController {
         user.setType("USER");
         System.out.println("Registering user :" + user);
         //IMPORTANT : When you try to save EntityUser without a converter the ID(email) is converted into ObjectID instead of being saved as a string
-        Mono<EntityUser> monoUser = userRepo.insert(new EntityUser(user.getEmail(), user.getPassword(), user.getName(), user.getType()))
-                .onErrorMap(err -> new Exception(err.getMessage()))
-                .defaultIfEmpty(dummyBean); //Same as above
+        Mono<EntityUser> monoUser = userService.createUser(user);
 
         return monoUser.map(u -> {
             System.out.println(u);
@@ -47,7 +46,7 @@ public class UserController {
     @GetMapping("/get/{id}")
     public Mono<ResponseEntity<ReqResp<EntityUser>>> getUser(@PathVariable String id) {
         System.out.println("Get called");
-        Mono<EntityUser> monoUser = userRepo.findById(id).defaultIfEmpty(dummyBean).onErrorReturn(dummyBean);
+        Mono<EntityUser> monoUser = userService.getUser(id);
 
         return monoUser.map(entityUser -> {
             if (entityUser.getEmail() == null) {
