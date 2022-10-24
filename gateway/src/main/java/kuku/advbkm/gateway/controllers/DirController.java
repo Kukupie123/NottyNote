@@ -1,8 +1,8 @@
 package kuku.advbkm.gateway.controllers;
 
 
-import kuku.advbkm.gateway.models.ReqRespBodies.RequestDirCreate;
-import kuku.advbkm.gateway.models.ReqRespModel.ReqResp;
+import kuku.advbkm.gateway.models.DirectoryModel;
+import kuku.advbkm.gateway.models.ReqResp.ReqResp;
 import kuku.advbkm.gateway.service.DbDirService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -25,7 +25,7 @@ public class DirController {
      * Returns the ID of the new folder
      */
     public @PostMapping("/create")
-    Mono<ResponseEntity<ReqResp<String>>> createDir(@RequestBody RequestDirCreate reqDir) {
-        return dbService.createDir(reqDir.getName(), reqDir.isPublic(), reqDir.getParent());
+    Mono<ResponseEntity<ReqResp<String>>> createDir(@RequestBody DirectoryModel reqDir) {
+        return dbService.createDir(reqDir);
     }
 }

@@ -3,8 +3,8 @@ package kuku.advbkm.gateway.controllers;
 
 import kuku.advbkm.gateway.configs.Security.MongoUSerDetailService;
 import kuku.advbkm.gateway.configs.Security.MongoUserDetails;
-import kuku.advbkm.gateway.models.ReqRespBodies.RequestUserLogin;
-import kuku.advbkm.gateway.models.ReqRespModel.ReqResp;
+import kuku.advbkm.gateway.models.UserModel;
+import kuku.advbkm.gateway.models.ReqResp.ReqResp;
 import kuku.advbkm.gateway.service.DbUserService;
 import kuku.advbkm.gateway.service.JWTService;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -48,7 +48,7 @@ public class AuthController {
 
 
     @PostMapping("/login")
-    public Mono<ResponseEntity<ReqResp<String>>> login(@RequestBody RequestUserLogin userLogin) {
+    public Mono<ResponseEntity<ReqResp<String>>> login(@RequestBody UserModel userLogin) {
         //find the user and if not found create an anonymous class
         Mono<UserDetails> user = userService.findByUsername(userLogin.getEmail()).defaultIfEmpty(dummyUserDetail);
 

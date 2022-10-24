@@ -1,7 +1,7 @@
 package kuku.advbkm.gateway.service;
 
 import kuku.advbkm.gateway.configs.Security.MongoUserDetails;
-import kuku.advbkm.gateway.models.ReqRespModel.ReqResp;
+import kuku.advbkm.gateway.models.ReqResp.ReqResp;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;

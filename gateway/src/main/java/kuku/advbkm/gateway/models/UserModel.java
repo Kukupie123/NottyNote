@@ -1,17 +1,13 @@
-package com.advbkm.db.models.RequestModels;
-
+package kuku.advbkm.gateway.models;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.ToString;
 
-@AllArgsConstructor
 @Getter
 @Setter
-@ToString
-public class ReqRegisterUser {
-
+@AllArgsConstructor
+public class UserModel {
     private String email;
     private String password;
     private String name;

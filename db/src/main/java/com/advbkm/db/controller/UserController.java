@@ -1,7 +1,6 @@
 package com.advbkm.db.controller;
 
 
-import com.advbkm.db.models.RequestModels.ReqRegisterUser;
 import com.advbkm.db.models.entities.EntityUser;
 import com.advbkm.db.models.reqresp.ReqResp;
 import com.advbkm.db.repo.RepoUsers;
@@ -26,7 +25,7 @@ public class UserController {
 
 
     @PostMapping("/reg")
-    public Mono<ResponseEntity<ReqResp<Boolean>>> register(@RequestBody ReqRegisterUser user) {
+    public Mono<ResponseEntity<ReqResp<Boolean>>> register(@RequestBody EntityUser user) {
         user.setType("USER");
         System.out.println("Registering user :" + user);
         //IMPORTANT : When you try to save EntityUser without a converter the ID(email) is converted into ObjectID instead of being saved as a string
