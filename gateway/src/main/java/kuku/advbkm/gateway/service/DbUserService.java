@@ -10,7 +10,7 @@ import reactor.core.publisher.Mono;
 import java.util.LinkedHashMap;
 
 @Service
-public class DbService {
+public class DbUserService {
 
     /**
      * Talks to db service and returns user if found.

@@ -1,6 +1,6 @@
 package kuku.advbkm.gateway.configs.Security;
 
-import kuku.advbkm.gateway.service.DbService;
+import kuku.advbkm.gateway.service.DbUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.ReactiveUserDetailsService;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -13,14 +13,14 @@ import java.util.Objects;
  */
 public class MongoUSerDetailService implements ReactiveUserDetailsService {
     @Autowired
-    private DbService dbService;
+    private DbUserService dbUserService;
 
 
     @Override
     public Mono<UserDetails> findByUsername(String username) {
         //getUser() returns a Mono<ResponseEntity<ReqResp<MongoUserDetails>>>
         //We need to transform it to Mono<UserDetails>
-        return dbService.getUser(username)
+        return dbUserService.getUser(username)
                 .mapNotNull(resp -> {
                     //If status code is success
                     if (resp.getStatusCode().is2xxSuccessful()) {
