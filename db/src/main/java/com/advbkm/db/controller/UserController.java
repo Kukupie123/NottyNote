@@ -45,15 +45,12 @@ public class UserController {
 
     @GetMapping("/get/{id}")
     public Mono<ResponseEntity<ReqResp<EntityUser>>> getUser(@PathVariable String id) {
-        System.out.println("Get called");
         Mono<EntityUser> monoUser = userService.getUser(id);
 
         return monoUser.map(entityUser -> {
             if (entityUser.getEmail() == null) {
-                System.out.println("No user found with id " + id);
                 return ResponseEntity.status(404).body(new ReqResp<>(null, "No user found"));
             }
-            System.out.println(" user found with id " + id);
             return ResponseEntity.ok(new ReqResp<>(entityUser, "Success"));
         });
     }

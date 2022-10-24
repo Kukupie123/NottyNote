@@ -11,14 +11,25 @@ import util.urls.URLs;
 
 @Service
 public class DbDirService {
+    private final JWTService jwtService;
+
+    public DbDirService(JWTService jwtService) {
+        this.jwtService = jwtService;
+    }
 
     /**
      * Creates a new directory as the user
+     *
+     * @param dir      The Directory Payload, the createdBy will be set based on JWT token
+     * @param jwtToken JWT token to extract the userID from and set as createdBy
      * @return ID of the newly created folder
      */
-    public Mono<ResponseEntity<ReqResp<String>>> createDir(DirectoryModel dir) {
+    public Mono<ResponseEntity<ReqResp<String>>> createDir(DirectoryModel dir, String jwtToken) {
+        //Get userName from the JWT token
+        String userID = jwtService.getUserName(jwtToken);
+        dir.setCreatorID(userID);
 
-
+        //prepare client to talk with db service
         WebClient client = WebClient.create(
                 URLs.DB_HOST(8000) + URLs.DIR_CREATE
         );

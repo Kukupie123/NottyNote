@@ -3,21 +3,25 @@ package kuku.advbkm.gateway.models;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+
+import java.util.List;
 
 @AllArgsConstructor
 @Getter
+@Setter
+@ToString
 public class DirectoryModel {
-    public DirectoryModel(String name, boolean isPublic, String parentID) {
-        this.name = name;
-        this.isPublic = isPublic;
-        this.parent = parentID;
-    }
 
-    private String id;
+
+    private String _id;
+    private String creatorID;
+    private String isPublic;
     private String name;
-    private boolean isPublic;
     private String parent;
-    private String[] children;
-    private String[] bookmarks;
+    private List<String> children;
+    private List<String> bookmarks;
+
 
 }

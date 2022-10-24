@@ -1,6 +1,5 @@
 package com.advbkm.db.models.entities;
 
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -14,17 +13,9 @@ import java.util.List;
 @Getter
 @Setter
 @ToString
-@Document(collection = "Directories")
-public class EntityDir {
+@Document(collection = "Connector_User2RootDir")
+public class EntityConnectorUserToDir {
     @MongoId
-    private String _id;
-    private String creatorID;
-    private String isPublic;
-    private String name;
-    private String parent;
-    private List<String> children;
-    private List<String> bookmarks;
-
-
+    private String userID;
+    private List<String> dirs;
 }
-

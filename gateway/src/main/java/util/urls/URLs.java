@@ -5,9 +5,9 @@ public class URLs {
     }
 
     public static String DB_HOST(int port) {
-        return String.format("http://localhost:%s/", port);
+        return "http://localhost:8000/api/v1/db/";
     }
 
-    public static String DIR_CREATE = "api/v1/db/dir/create";
+    public static String DIR_CREATE = "dir/create";
 
 }
