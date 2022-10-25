@@ -60,6 +60,6 @@ public class JWTService {
         boolean unexpired = claims.getExpiration().after(Date.from(Instant.now()));
 
 
-        return unexpired && userName.equals(claims.getSubject());
+        return unexpired && userName.equalsIgnoreCase(claims.getSubject());
     }
 }
