@@ -127,10 +127,38 @@ public class DirService {
 
                                         //Children exist
 
-                                        //save children in a list
-                                        List<String> children = foundDir.getChildren();
+                                        //We need to set the parentID of children to empty string as they are now root and have no parent
+                                        return Flux.fromArray(foundDir.getChildren().toArray())
+                                                .map(s -> (String) s)
+                                                .flatMap(childID -> {
 
-                                        foundConnector.getDirs().addAll(children); //update the children list by adding the children of foundDir as they are now considered root dirs too
+                                                    //Access the child based on their ID
+                                                    return dirRepo.findById(childID)
+                                                            .flatMap(child -> {
+
+                                                                //Set parent to empty string
+                                                                child.setParent("");
+
+                                                                //Save the updated value to table
+                                                                return dirRepo.save(child)
+                                                                        .map(updatedChild -> updatedChild.get_id());
+                                                            });
+                                                })
+                                                //After updating the values we can now update connector table and add these children ID as root for the creatorID
+                                                .collectList()
+                                                .flatMap(childrenIDs -> {
+
+                                                    foundConnector.getDirs().addAll(childrenIDs);
+                                                    foundConnector.getDirs().remove(foundDir.get_id());
+
+                                                    return connectorUserToDirRepo.save(foundConnector)
+                                                            .flatMap(updatedConnector -> {
+
+                                                                //Remove foundDir from record
+                                                                return dirRepo.deleteById(foundDir.get_id())
+                                                                        .map(e -> true);
+                                                            });
+                                                });
                                     }
 
                                     foundConnector.getDirs().remove(foundDir.get_id()); // remove foundDir's ID from root dirs list
@@ -139,7 +167,8 @@ public class DirService {
                                             .flatMap(updatedConnector -> {
 
                                                 //remove foundDir from record
-                                                return dirRepo.deleteById(foundDir.get_id()).map(e -> true);
+                                                return dirRepo.deleteById(foundDir.get_id())
+                                                        .map(e -> true);
                                             });
 
                                 });
