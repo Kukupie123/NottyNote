@@ -4,10 +4,7 @@ import com.advbkm.db.models.entities.EntityDir;
 import com.advbkm.db.models.reqresp.ReqResp;
 import com.advbkm.db.service.DirService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -28,5 +25,19 @@ public class DirController {
         return createdDir.map(
                 entityDir -> ResponseEntity.status(200).body(new ReqResp<>(entityDir.get_id(), "Success"))
         );
+    }
+
+    public @DeleteMapping("/{id}")
+    Mono<ResponseEntity<ReqResp<Boolean>>> deleteDir(@PathVariable String id) {
+        return dirService.deleteDir(id)
+                .map(
+                        success -> {
+                            int status = 200;
+                            if (success) {
+                                status = 500;
+                            }
+                            return ResponseEntity.status(status).body(new ReqResp<>(success, ""));
+                        }
+                );
     }
 }
