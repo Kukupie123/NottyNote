@@ -5,11 +5,14 @@ import com.advbkm.db.models.entities.EntityConnectorUserToDir;
 import com.advbkm.db.models.entities.EntityDir;
 import com.advbkm.db.repo.RepoConnectorUserToDir;
 import com.advbkm.db.repo.RepoDir;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
+import java.util.List;
 
+@Log4j2
 @Service
 public class DirService {
 
@@ -37,54 +40,57 @@ public class DirService {
         dir.set_id(null);
         dir.setBookmarks(new ArrayList<>()); //Newly created dir don't have bookmarks
         dir.setChildren(new ArrayList<>()); // Newly created dir don't have children
-        dir.setParent("");
 
 
-        //IMPORTANT !!! Tried to store save()'s return value as a variable and then do things but DOESN'T WORK! KEEP IN MIND. YOU NEED TO DO IT ON THE SAME CHAIN
-        var a = dirRepo.save(dir)
-                .doOnSuccess(savedDir -> {
-                    //Once we have saved we want to check if its root dir or not and if its root then we need to add the record to Connector DB as well
+        //IMPORTANT : Nested Mono operations do not work if you don't make it return from the mono actions inside the nest operations. It makes it NOT WAIT for the result from that mono publisher and directly returns
+        Mono<EntityDir> savedDirMono = dirRepo.save(dir); //Save in db
 
-                    if (!(savedDir.getParent() == null || savedDir.getParent().isEmpty())) {
-                        System.out.println("Not a parent ");
-                        return;
+        //We need to check if the newly saved entityDir needs to be saved to another Table known as Connector, This is done inside this flatmap chain
+        return savedDirMono.flatMap(
+
+                savedDir -> {
+
+                    //We need to add savedDir to Connector if this is true
+                    if ((savedDir.getParent() == null || savedDir.getParent().isEmpty())) {
+
+                        //Check if a record already exists with same userID, if yes then we need to get it from table and update it's values and then AGAIN save it to connector table
+                        return connectorUserToDirRepo
+                                .findById(savedDir.getCreatorID())
+                                .defaultIfEmpty(new EntityConnectorUserToDir(null, null))
+                                .flatMap(savedConnector -> {
+
+                                    //If this is true then no record found so we can simply save new record
+                                    if (savedConnector.getUserID() == null || savedConnector.getUserID().isEmpty()) {
+
+                                        List<String> stringList = new ArrayList<>();
+                                        stringList.add(savedDir.get_id());
+
+                                        //Save to other db and flatmap it and return it to upper part of the nest
+                                        return connectorUserToDirRepo.save(new EntityConnectorUserToDir(savedDir.getCreatorID(), stringList))
+                                                .map(connectorUserToDir -> savedDir);
+                                    } else {
+
+
+                                        //Record exists we need to update it's dir list and then save it again
+                                        List<String> stringList = savedConnector.getDirs();
+                                        stringList.add(savedDir.get_id());
+
+                                        //Save to connector db, flatmap it and return it to upper part of nest
+                                        return connectorUserToDirRepo.save(savedConnector)
+                                                .map(connectorUserToDir -> savedDir);
+                                    }
+
+                                });
+                    } else {
+
+                        //not a parent so no need to do further
+                        log.info("NOT A PARENT");
+                        return Mono.justOrEmpty(savedDir);
                     }
 
-                    System.out.println("ITS A PARENT");
-                    //If parents don't exist we are going to add them to connector DB
-                    //Check if a record with the userID is already present in Connector Collection
-                    connectorUserToDirRepo.existsById(savedDir.getCreatorID())
-                            .doOnSuccess(exist -> {
-                                System.out.println("EZEZ EZ ");
-                                if (exist) {
-                                    //Record exists, we need to get the record -> add the new dir to dirs[] and update the record
-                                    System.out.println("User has root dirs already");
+                }
+        );
 
-                                    //Get the record
-                                    connectorUserToDirRepo.findById(savedDir.getCreatorID())
-                                            .doOnSuccess(connectorUserToDir -> {
-
-                                                //Update dirs by adding new dir ID
-                                                var newList = connectorUserToDir.getDirs();
-                                                newList.add(savedDir.get_id());
-                                                connectorUserToDir.setDirs(newList);
-
-                                                //Save the new updated doc to db
-                                                connectorUserToDirRepo.save(connectorUserToDir);
-                                                //TODO: Add a fallback
-
-                                            });
-                                }
-                                //Record doesn't exist so we can add a new one
-                                System.out.println("No previous record in connector table so creating a new one");
-                                var newList = new ArrayList<String>();
-                                newList.add(savedDir.get_id());
-                                connectorUserToDirRepo.save(new EntityConnectorUserToDir(savedDir.getCreatorID(), newList));
-
-                            });
-
-                });
-        return a;
 
     }
 }
