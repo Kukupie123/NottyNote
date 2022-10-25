@@ -27,9 +27,8 @@ public class DirService {
 
     public Mono<EntityDir> createDir(EntityDir dir) {
         /*
-        The createdBy has to be set by the gateway as this service does not deal with extracting userID from JWT token. That is done by JWT token of Gateway Service
-        1. If no parent the dir is supposed to be a root dir and has to be put in the Connector_user2Dir table as well
-        2. In user2Dir we are going to add to the array list if such record already exists
+        The createdBy has to be set before it was passed as the argument
+        The service that handles JWT service needs to take care of extracting the username from the JWT Token
          */
 
         //Validate dir object
@@ -41,55 +40,64 @@ public class DirService {
         dir.setBookmarks(new ArrayList<>()); //Newly created dir don't have bookmarks
         dir.setChildren(new ArrayList<>()); // Newly created dir don't have children
 
+        //TODO: Transaction based I/O
 
-        //IMPORTANT : Nested Mono operations do not work if you don't make it return from the mono actions inside the nest operations. It makes it NOT WAIT for the result from that mono publisher and directly returns
-        Mono<EntityDir> savedDirMono = dirRepo.save(dir); //Save in db
+        //Check if it's root dir or sub dir
+        if (dir.getParent() == null || dir.getParent().isEmpty()) {
+            //It is a root DIR since it doesn't have a parent
 
-        //We need to check if the newly saved entityDir needs to be saved to another Table known as Connector, This is done inside this flatmap chain
-        return savedDirMono.flatMap(
+            return dirRepo.save(dir)
+                    .flatMap(savedDir -> {
 
-                savedDir -> {
-
-                    //We need to add savedDir to Connector if this is true
-                    if ((savedDir.getParent() == null || savedDir.getParent().isEmpty())) {
-
-                        //Check if a record already exists with same userID, if yes then we need to get it from table and update it's values and then AGAIN save it to connector table
-                        return connectorUserToDirRepo
-                                .findById(savedDir.getCreatorID())
-                                .defaultIfEmpty(new EntityConnectorUserToDir(null, null))
+                        //Check if connector table already has a record
+                        return connectorUserToDirRepo.findById(savedDir.getCreatorID()).defaultIfEmpty(new EntityConnectorUserToDir(null, null))
                                 .flatMap(savedConnector -> {
 
-                                    //If this is true then no record found so we can simply save new record
-                                    if (savedConnector.getUserID() == null || savedConnector.getUserID().isEmpty()) {
+                                    //Check if record exist
+                                    if (savedConnector.getUserID() == null) {
 
+                                        //No record found, simply save it
                                         List<String> stringList = new ArrayList<>();
                                         stringList.add(savedDir.get_id());
-
-                                        //Save to other db and flatmap it and return it to upper part of the nest
                                         return connectorUserToDirRepo.save(new EntityConnectorUserToDir(savedDir.getCreatorID(), stringList))
-                                                .map(connectorUserToDir -> savedDir);
+                                                .map(e -> savedDir);
                                     } else {
 
-
-                                        //Record exists we need to update it's dir list and then save it again
-                                        List<String> stringList = savedConnector.getDirs();
-                                        stringList.add(savedDir.get_id());
-
-                                        //Save to connector db, flatmap it and return it to upper part of nest
+                                        //Record found, update dir value and save it again
+                                        var stringList = savedConnector.getDirs();
+                                        stringList.add(savedDir.getCreatorID());
                                         return connectorUserToDirRepo.save(savedConnector)
-                                                .map(connectorUserToDir -> savedDir);
+                                                .map(e -> savedDir);
                                     }
-
                                 });
-                    } else {
 
-                        //not a parent so no need to do further
-                        log.info("NOT A PARENT");
-                        return Mono.justOrEmpty(savedDir);
-                    }
+                    });
+        } else {
+            //It is a sub dir since it has parentID, Check if a dir with parentID exists
+            return dirRepo.findById(dir.getParent()).defaultIfEmpty(new EntityDir(null, null, null, null, null, null, null))
+                    .flatMap(parentDir -> {
 
-                }
-        );
+                        //Check if parent is valid
+                        if (parentDir.get_id() == null) {
+
+                            //Parent not valid throw error
+                            return Mono.error(new Exception("Invalid Parent ID supplied"));
+                        } else {
+
+                            //Parent is valid, save the sub dir and then update parent's children list
+                            return dirRepo.save(dir)
+                                    .flatMap(savedDir -> {
+
+                                        //After saving sub-dir, update children list and update parent and return back sub-dir NOT parent
+                                        var updatedChildren = parentDir.getChildren();
+                                        updatedChildren.add(savedDir.get_id());
+                                        return dirRepo.save(parentDir)
+                                                .map(e -> savedDir); //return sub-dir not parent
+                                    });
+                        }
+                    });
+
+        }
 
 
     }
