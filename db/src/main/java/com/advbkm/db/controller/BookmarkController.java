@@ -12,7 +12,7 @@ import reactor.core.publisher.Mono;
 
 @Log4j2
 @RestController()
-@RequestMapping("/api/v1/db/template")
+@RequestMapping("/api/v1/db/bookmark")
 public class BookmarkController {
     private final BookmarkService bookmarkService;
 
@@ -22,6 +22,7 @@ public class BookmarkController {
 
     @PostMapping("/create")
     public Mono<ResponseEntity<ReqResp<String>>> createBookmark(@RequestBody EntityBookmark bookmark, @RequestHeader("Authorization") String userID) {
+        log.info("Create bookmark with body {}", bookmark);
         return bookmarkService.createBookmark(bookmark, userID)
                 .map(
                         bkmID -> ResponseEntity.ok().body(new ReqResp<>(bkmID, "Success"))

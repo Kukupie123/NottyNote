@@ -10,6 +10,7 @@ import com.advbkm.db.repo.RepoBookmark;
 import com.advbkm.db.repo.RepoConnector;
 import com.advbkm.db.repo.RepoDir;
 import com.advbkm.db.repo.RepoTemplate;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -17,6 +18,7 @@ import reactor.core.publisher.Mono;
 import java.util.HashMap;
 import java.util.Map;
 
+@Log4j2
 @Service
 public class BookmarkService {
 
@@ -39,7 +41,8 @@ public class BookmarkService {
         3. Validating if dirID is valid
         4. Validating if mandatory keys of templateID match up with the keys supplied
         5. Saving the bookmark.
-        6. Adding the bookmarkID to connector
+        6. Adding bookmarkID to dir bookmarks list
+        7. Adding the bookmarkID to connector
          */
 
         String mapFoundTemp = "foundTemp";
@@ -61,6 +64,10 @@ public class BookmarkService {
 
                     if (foundTemplate.getId() == null || foundTemplate.getId().isEmpty()) {
                         return Mono.error(new ResponseException("Template wth ID " + bookmark.getTemplateID() + " NOT FOUND", 404));
+                    }
+
+                    if (!foundTemplate.getCreatorID().equalsIgnoreCase(userID)) {
+                        return Mono.error(new ResponseException("Template Creator ID do not match userID extracted from JWT Token", 401));
                     }
                     return Mono.just(foundTemplate);
                 })
@@ -88,23 +95,26 @@ public class BookmarkService {
                 })
                 //Get the directory, return a map which will store the argument object to avoid losing it during transformation using map/flatmap
                 .flatMap(foundTemp -> {
+                    log.info("FINDING DIR ID {}", bookmark.getDirID());
 
-                    Map<String, Object> map = new HashMap<>();
-                    map.put(mapFoundTemp, foundTemp);
-
-                    return repoDir.findById(bookmark.getDirID())
+                    return repoDir.findById(bookmark.getDirID()).defaultIfEmpty(new EntityDir())
                             .map(foundDir -> {
+                                Map<String, Object> map = new HashMap<>();
+                                map.put(mapFoundTemp, foundTemp);
                                 map.put(mapFoundDir, foundDir);
                                 return map;
                             });
                 })
                 //Validate foundDir
                 .flatMap(map -> {
-
                     EntityDir foundDir = (EntityDir) map.get(mapFoundDir);
+                    log.info(foundDir);
 
                     if (foundDir.get_id() == null || foundDir.get_id().isEmpty()) {
-                        Mono.error(new ResponseException("Directory with the given ID not found.", 404));
+                        return Mono.error(new ResponseException("Directory with the given ID not found.", 404));
+                    }
+                    if (!foundDir.getCreatorID().equalsIgnoreCase(userID)) {
+                        return Mono.error(new ResponseException("Directory Creator ID do not match userID extracted from JWT Token", 401));
                     }
                     return Mono.just(map);
                 })
@@ -115,6 +125,24 @@ public class BookmarkService {
                             .map(savedBKM -> {
 
                                 map.put(mapSavedBkm, savedBKM);
+                                return map;
+                            });
+                })
+                // Update the bookmarks list of the directory
+                .map(map -> {
+
+                    EntityDir foundDir = (EntityDir) map.get(mapFoundDir);
+                    EntityBookmark savedBKM = (EntityBookmark) map.get(mapSavedBkm);
+                    foundDir.getBookmarks().add(savedBKM.getId());
+                    return map;
+                })
+                // Saving the updated directory
+                .flatMap(map -> {
+
+                    EntityDir foundDir = (EntityDir) map.get(mapFoundDir);
+                    return repoDir.save(foundDir)
+                            .map(updatedDir -> {
+                                map.put(mapFoundDir, updatedDir);
                                 return map;
                             });
                 })
@@ -150,4 +178,3 @@ public class BookmarkService {
 
 }
 
-//TODO: Combine all connector into one collection as they all have userID as their PK
