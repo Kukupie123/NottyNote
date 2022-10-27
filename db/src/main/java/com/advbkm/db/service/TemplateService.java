@@ -8,6 +8,9 @@ import com.advbkm.db.repo.connectors.RepoConnectorUserToTemp;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Service
 public class TemplateService {
 
@@ -26,29 +29,55 @@ public class TemplateService {
     }
 
     public Mono<String> createTemplate(EntityTemplate template, String userID) {
+
+        //Names of map, map that we will create inside mono to save object that will otherwise be lost during mono/flux transformation
+        String mapSavedTemplate = "savedTemplate";
+        String mapFoundConnector = "foundConnector";
+
         template.setCreatorID(userID);
-        //Create a new record in template record
-        //In connector of user-template add new item to list
+
+        /*
+        1. Save the template
+        2. Get/Create EntityConnector
+        3. Add the templateID to Connector we found
+        4. Save the updated Connector
+         */
 
         var finalMono = repoTemp.save(template)
+                //Get Connector record or create a new one, then return a map
                 .flatMap(savedTemplate -> {
 
-                    this.templateID = savedTemplate.getId();
+                    Map<String, Object> map = new HashMap<>();
+                    map.put(mapSavedTemplate, savedTemplate);
 
 
-                    //Get connector record or create new one, then add the new template list
-                    return repoConnector.findById(savedTemplate.getCreatorID()).defaultIfEmpty(new EntityConnector(savedTemplate.getCreatorID()));
+                    return repoConnector.findById(savedTemplate.getCreatorID()).defaultIfEmpty(new EntityConnector(savedTemplate.getCreatorID()))
+                            //Add the connector we found/created
+                            .map(foundConnector -> {
+                                map.put(mapFoundConnector, foundConnector);
+                                return map;
+                            });
                 })
-                .flatMap(conn -> {
+                // Update the connector
+                .map(map -> {
+                    EntityConnector conn = (EntityConnector) map.get(mapFoundConnector);
+                    String templateID = ((EntityTemplate) map.get(mapSavedTemplate)).getId();
 
                     //Add the new template ID to the list and save it
                     conn.getTemplates().add(templateID);
 
-                    return repoConnector.save(conn);
+                    return map;
 
                 })
-                //After saving we simply return the newly created Template's ID
-                .map(e -> this.templateID);
+                //Save the updated connector, return the templateID
+                .flatMap(map -> {
+
+                    EntityConnector conn = (EntityConnector) map.get(mapFoundConnector);
+                    String templateID = ((EntityTemplate) map.get(mapSavedTemplate)).getId();
+
+                    return repoConnector.save(conn)
+                            .map(updatedConn -> templateID);
+                });
 
         return finalMono;
 
