@@ -33,4 +33,16 @@ public class BookmarkController {
                 ;
 
     }
+
+    @DeleteMapping("/{id}")
+    public Mono<ResponseEntity<ReqResp<Boolean>>> deleteBookmark(@PathVariable String id, @RequestHeader("Authorization") String userID) {
+        return bookmarkService.deleteBookmark(id, userID)
+                .map(aBoolean -> ResponseEntity.ok(new ReqResp<>(aBoolean, "Success")))
+                .onErrorResume(throwable -> {
+                    var err = (ResponseException) throwable;
+                    return Mono.just(
+                            ResponseEntity.status(err.getStatusCode()).body(new ReqResp<>(null, err.getMessage()))
+                    );
+                });
+    }
 }

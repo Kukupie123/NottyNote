@@ -25,4 +25,10 @@ public class BookmarkController {
         String jwtToken = token.substring(7);
         return bookmarkService.createBookmark(bookmarkModel, jwtToken);
     }
+
+    @DeleteMapping("/{id}")
+    public Mono<ResponseEntity<ReqResp<Boolean>>> deleteBookmark(@PathVariable String id, @RequestHeader("Authorization") String token) {
+        String jwtToken = token.substring(7);
+        return bookmarkService.deleteBookmark(id, jwtToken);
+    }
 }

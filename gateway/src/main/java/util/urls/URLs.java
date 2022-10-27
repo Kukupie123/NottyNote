@@ -18,5 +18,9 @@ public class URLs {
         return "dir/" + id;
     }
 
+    public static String BKM_DELETE(String id) {
+        return "bookmark/" + id;
+    }
+
 
 }
