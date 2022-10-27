@@ -8,14 +8,16 @@ import com.advbkm.db.repo.RepoConnector;
 import com.advbkm.db.repo.RepoDir;
 import com.advbkm.db.repo.RepoUsers;
 import com.advbkm.db.repo.connectors.RepoConnectorUserToDir;
-import lombok.AllArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.io.FileNotFoundException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 @Log4j2
 @Service
@@ -41,9 +43,6 @@ public class DirService {
         String mapSavedDirName = "savedDir";
         String mapFoundConnectorName = "foundConnector";
 
-        //Validate dir object
-        if (dir.getName() == null || dir.getName().isEmpty() || dir.getCreatorID() == null || dir.getCreatorID().isEmpty())
-            return Mono.error(new Exception("Null Dir fields"));
 
         //Set id to null to generate random ID and do other process
         dir.set_id(null);
@@ -51,7 +50,9 @@ public class DirService {
         dir.setChildren(new ArrayList<>()); // Newly created dir don't have children
         dir.setCreatorID(userID);
 
-
+        //Validate dir object
+        if (dir.getName() == null || dir.getName().isEmpty() || dir.getCreatorID() == null || dir.getCreatorID().isEmpty())
+            return Mono.error(new Exception("Null Dir fields"));
 
         /*
         1. Check if it's parent dir or sub dir

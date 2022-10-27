@@ -20,12 +20,12 @@ public class DirController {
     }
 
     public @PostMapping("/create")
-    Mono<ResponseEntity<ReqResp<String>>> createDir(@RequestBody EntityDir dir) {
+    Mono<ResponseEntity<ReqResp<String>>> createDir(@RequestBody EntityDir dir, @RequestHeader("Authorization") String userID) {
         System.out.println("CREATE DIR CALLED " + dir);
-        Mono<EntityDir> createdDir = dirService.createDir(dir);
+        Mono<String> createdDir = dirService.createDir(dir, userID);
 
         return createdDir.map(
-                entityDir -> ResponseEntity.status(200).body(new ReqResp<>(entityDir.get_id(), "Success"))
+                entityDir -> ResponseEntity.status(200).body(new ReqResp<>(entityDir, "Success"))
         );
     }
 

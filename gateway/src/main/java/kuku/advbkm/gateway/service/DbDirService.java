@@ -29,7 +29,6 @@ public class DbDirService {
     public Mono<ResponseEntity<ReqResp<String>>> createDir(DirectoryModel dir, String jwtToken) {
         //Get userName from the JWT token
         String userID = jwtService.getUserID(jwtToken);
-        dir.setCreatorID(userID);
 
         //prepare client to talk with db service
         WebClient client = WebClient.create(
@@ -37,20 +36,21 @@ public class DbDirService {
         );
 
 
-        Mono<ResponseEntity<ReqResp<String>>> transformedResponse = client.post().bodyValue(dir).exchangeToMono(resp -> {
+        Mono<ResponseEntity<ReqResp<String>>> transformedResponse = client.post().bodyValue(dir).header("Authorization", userID)
+                .exchangeToMono(resp -> {
 
-            Mono<ReqResp> body = resp.bodyToMono(ReqResp.class);
+                    Mono<ReqResp> body = resp.bodyToMono(ReqResp.class);
 
-            Mono<ResponseEntity<ReqResp<String>>> transformedBody = body.map(b -> {
-                String msg = b.getMsg();
-                String dirID = (String) b.getData();
-                return ResponseEntity.status(resp.rawStatusCode()).body(new ReqResp<>(dirID, msg));
-            });
+                    Mono<ResponseEntity<ReqResp<String>>> transformedBody = body.map(b -> {
+                        String msg = b.getMsg();
+                        String dirID = (String) b.getData();
+                        return ResponseEntity.status(resp.rawStatusCode()).body(new ReqResp<>(dirID, msg));
+                    });
 
-            return transformedBody;
+                    return transformedBody;
 
 
-        });
+                });
 
         return transformedResponse;
 
