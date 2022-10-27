@@ -10,6 +10,9 @@ public class URLs {
 
     public static String DIR_CREATE = "dir/create";
 
+    public static final String TEMP_CREATE = "template/create";
+
+
     public static String DIR_DELETE(String id) {
         return "dir/" + id;
     }

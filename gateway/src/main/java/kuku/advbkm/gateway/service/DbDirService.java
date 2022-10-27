@@ -28,7 +28,7 @@ public class DbDirService {
      */
     public Mono<ResponseEntity<ReqResp<String>>> createDir(DirectoryModel dir, String jwtToken) {
         //Get userName from the JWT token
-        String userID = jwtService.getUserName(jwtToken);
+        String userID = jwtService.getUserID(jwtToken);
         dir.setCreatorID(userID);
 
         //prepare client to talk with db service
@@ -67,7 +67,7 @@ public class DbDirService {
     public Mono<ResponseEntity<ReqResp<Boolean>>> deleteDir(String dirID, String jwtToken) {
         String url = URLs.DB_HOST(8000) + URLs.DIR_DELETE(dirID);
         log.info("Delete Dir service function called on URL {}", url);
-        String userID = jwtService.getUserName(jwtToken);
+        String userID = jwtService.getUserID(jwtToken);
         WebClient client = WebClient.create(url);
 
         return client

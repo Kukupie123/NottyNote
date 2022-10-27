@@ -1,7 +1,7 @@
 package com.advbkm.db.service;
 
 
-import com.advbkm.db.models.entities.EntityConnectorUserToDir;
+import com.advbkm.db.models.entities.connectorEntity.EntityConnectorUserToDir;
 import com.advbkm.db.models.entities.EntityDir;
 import com.advbkm.db.models.entities.EntityUser;
 import com.advbkm.db.repo.RepoConnectorUserToDir;

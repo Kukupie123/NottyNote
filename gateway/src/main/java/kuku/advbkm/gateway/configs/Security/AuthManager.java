@@ -45,7 +45,7 @@ public class AuthManager implements ReactiveAuthenticationManager {
                 //Next, we are going to do some processing with the authentication object.
                 .flatMap(auth -> {
                     //Why did we use flatmap? Because if we don't the return type becomes Mono<Mono<Object>> instead of Mono<Authentication> as Map covers the return type with a Mono
-                    String userName = jwtService.getUserName(auth.getCredentials()); //Get the username using JWT Service
+                    String userName = jwtService.getUserID(auth.getCredentials()); //Get the username using JWT Service
                     Mono<UserDetails> user = mongoUserDetailService.findByUsername(userName).defaultIfEmpty(dummyUserDetails); //Get MongoUserDetails by using our MongoUserDetailService
 
                     //Why do we use flatmap? Because If we map to transform an object we can't return Mono.error as this will change the type to Mono<Mono<Exception>> But we need Mono<Authentication>

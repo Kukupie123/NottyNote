@@ -43,8 +43,8 @@ public class JWTService {
 
     }
 
-    public String getUserName(String token) {
-        //Subject is where we store the username
+    public String getUserID(String token) {
+        //Subject is where we store the ID
         var a = parser
                 .parseClaimsJws(token)
                 .getBody().getSubject();
