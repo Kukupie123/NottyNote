@@ -18,6 +18,7 @@ public class EntityBookmark {
     private String id;
     private String creatorID;
     private String templateID;
+    private String dirID;
     private String name;
     private boolean isPublic;
     private HashMap<String, Object> data;
