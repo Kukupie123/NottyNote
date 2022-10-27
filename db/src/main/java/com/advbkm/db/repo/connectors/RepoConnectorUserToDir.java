@@ -1,4 +1,4 @@
-package com.advbkm.db.repo;
+package com.advbkm.db.repo.connectors;
 
 import com.advbkm.db.models.entities.connectorEntity.EntityConnectorUserToDir;
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;

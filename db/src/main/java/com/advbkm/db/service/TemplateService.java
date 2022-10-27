@@ -1,14 +1,12 @@
 package com.advbkm.db.service;
 
+import com.advbkm.db.models.entities.EntityConnector;
 import com.advbkm.db.models.entities.TemplateEntity.EntityTemplate;
-import com.advbkm.db.models.entities.connectorEntity.EntityConnectorUserToTemp;
-import com.advbkm.db.repo.RepoConnectorUserToTemp;
+import com.advbkm.db.repo.RepoConnector;
 import com.advbkm.db.repo.RepoTemplate;
+import com.advbkm.db.repo.connectors.RepoConnectorUserToTemp;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Service
 public class TemplateService {
@@ -16,13 +14,15 @@ public class TemplateService {
 
     private final RepoTemplate repoTemp;
     private final RepoConnectorUserToTemp repoConnectorUserToTemp;
+    private final RepoConnector repoConnector;
 
 
     private String templateID; //Used to save templateID when creating template as we lose templateID information once we transform it
 
-    public TemplateService(RepoTemplate repoTemp, RepoConnectorUserToTemp repoConnectorUserToTemp) {
+    public TemplateService(RepoTemplate repoTemp, RepoConnectorUserToTemp repoConnectorUserToTemp, RepoConnector repoConnector) {
         this.repoTemp = repoTemp;
         this.repoConnectorUserToTemp = repoConnectorUserToTemp;
+        this.repoConnector = repoConnector;
     }
 
     public Mono<String> createTemplate(EntityTemplate template, String userID) {
@@ -31,36 +31,26 @@ public class TemplateService {
         //In connector of user-template add new item to list
 
         var finalMono = repoTemp.save(template)
-                //Using the savedTempID try to get existing or newly created EntityConnectorUsrToTemp
-                .flatMap(savedTemp -> {
+                .flatMap(savedTemplate -> {
 
-                    //Saving templateID to a class member because once transformed this information will be gone
-                    this.templateID = savedTemp.getId();
-                    String savedTempID = savedTemp.getId();
-
-                    List<String> stringList = new ArrayList<>();
-                    stringList.add(savedTempID);
+                    this.templateID = savedTemplate.getId();
 
 
-                    //Try to get saved list
-                    return repoConnectorUserToTemp.findById(savedTemp.getCreatorID())
-                            //If prev record not found we will create new entity
-                            .defaultIfEmpty(new EntityConnectorUserToTemp(savedTemp.getCreatorID(), stringList))
-                            .map(foundUser2Temp -> {
-                                //To update if record already exists, we need to add the new templateID
-                                if (foundUser2Temp.getTemplateIDs().contains(savedTempID) == false)
-                                    foundUser2Temp.getTemplateIDs().add(savedTempID);
-
-                                return foundUser2Temp;
-                            });
+                    //Get connector record or create new one, then add the new template list
+                    return repoConnector.findById(savedTemplate.getCreatorID()).defaultIfEmpty(new EntityConnector(savedTemplate.getCreatorID()));
                 })
-                //With the entityConnectorUserToTemp object, save it back to the collection
-                .flatMap(updatedUser2Temp -> {
-                    return repoConnectorUserToTemp.save(updatedUser2Temp)
-                            .map(savedUser2Temp -> this.templateID);
-                });
+                .flatMap(conn -> {
 
-        return finalMono.onErrorResume(err -> Mono.error(new Exception(err.getMessage())));
+                    //Add the new template ID to the list and save it
+                    conn.getTemplates().add(templateID);
+
+                    return repoConnector.save(conn);
+
+                })
+                //After saving we simply return the newly created Template's ID
+                .map(e -> this.templateID);
+
+        return finalMono;
 
     }
 

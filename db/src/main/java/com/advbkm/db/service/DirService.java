@@ -4,7 +4,7 @@ package com.advbkm.db.service;
 import com.advbkm.db.models.entities.connectorEntity.EntityConnectorUserToDir;
 import com.advbkm.db.models.entities.EntityDir;
 import com.advbkm.db.models.entities.EntityUser;
-import com.advbkm.db.repo.RepoConnectorUserToDir;
+import com.advbkm.db.repo.connectors.RepoConnectorUserToDir;
 import com.advbkm.db.repo.RepoDir;
 import com.advbkm.db.repo.RepoUsers;
 import lombok.extern.log4j.Log4j2;
