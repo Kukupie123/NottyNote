@@ -1,6 +1,7 @@
 package com.advbkm.db.controller;
 
 import com.advbkm.db.models.entities.EntityDir;
+import com.advbkm.db.models.exception.ResponseException;
 import com.advbkm.db.models.reqresp.ReqResp;
 import com.advbkm.db.service.DirService;
 import lombok.extern.log4j.Log4j2;
@@ -26,30 +27,25 @@ public class DirController {
 
         return createdDir.map(
                 entityDir -> ResponseEntity.status(200).body(new ReqResp<>(entityDir, "Success"))
-        );
+        ).onErrorResume(throwable -> Mono.just(
+                ResponseEntity
+                        .status(((ResponseException) throwable).getStatusCode())
+                        .body(new ReqResp<>(null, throwable.getMessage()))
+
+        ));
     }
 
     public @DeleteMapping("/{id}")
     Mono<ResponseEntity<ReqResp<Boolean>>> deleteDir(@PathVariable String id, @RequestHeader("Authorization") String userID) {
         log.info("Delete Dir endpoint Triggered with ID {} and user {}", id, userID);
         return dirService.deleteDir(id, userID)
-                .onErrorMap(throwable -> new Exception(throwable.getMessage()))
-                .map(
-                        success -> {
-
-                            log.info("Deleting success status : {}", success);
-                            int status = 200;
-                            if (!success) {
-                                status = 500;
-                            }
-                            return ResponseEntity.status(status).body(new ReqResp<>(success, ""));
-                        }
-                )
-                .onErrorResume(throwable -> {
-                            log.error("Something went wrong inside delete endpoint " + throwable.getMessage());
-                            return Mono.just(
-                                    ResponseEntity.status(500).body(new ReqResp<>(false, throwable.getMessage())));
-                        }
+                .map(b -> ResponseEntity.ok().body(new ReqResp<>(b, "Success")))
+                .onErrorResume(
+                        throwable -> Mono.just(
+                                ResponseEntity
+                                        .status(((ResponseException) throwable).getStatusCode())
+                                        .body(new ReqResp<>(false, throwable.getMessage()))
+                        )
                 );
     }
 }

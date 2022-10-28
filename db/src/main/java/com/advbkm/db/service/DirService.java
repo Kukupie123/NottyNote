@@ -47,7 +47,7 @@ public class DirService {
 
         //Validate dir object
         if (dir.getName() == null || dir.getName().isEmpty() || dir.getCreatorID() == null || dir.getCreatorID().isEmpty())
-            return Mono.error(new Exception("Null Dir fields"));
+            return Mono.error(new ResponseException("Null Dir fields", 400));
 
         /*
         1. Check if it's parent dir or sub dir
@@ -77,7 +77,7 @@ public class DirService {
                     .flatMap(parentDir -> {
 
                         if (parentDir.get_id() == null || parentDir.get_id().isEmpty())
-                            return Mono.error(new Exception("Parent ID is not valid"));
+                            return Mono.error(new ResponseException("Parent ID is not valid", 404));
 
                         //Create a map to store parentDir object
                         return Mono.just(parentDir);
@@ -159,8 +159,7 @@ public class DirService {
 
     public Mono<Boolean> deleteDir(String dirID, String userID) {
         /*
-
-        1. Get targerDir, validate creatorID and userID, must exist
+        1. Get targetDir, validate creatorID and userID, must exist
         2. Get Connector, must exist
         3. Get parentID (if sub-dir), may or may-not exist. Throw error if it doesn't exist when it should, validate creatorID and userID of parentDir
         4. Store childrenID, Bookmarks
@@ -180,9 +179,8 @@ public class DirService {
         1. Iterate childrenID and get them.
         2. Set their parent to "".
         3. Save them back
-        4. Update connector to have all children as rootDir
+        4. Update connector to have all children as rootDir and remove targetDir ID from connector
         5. Delete TargetDir
-
 
         FINALLY:
         Save connector to db
@@ -203,6 +201,7 @@ public class DirService {
                         return Mono.error(new ResponseException("UserID and Dir CreatorID do not match", 401));
                     Map<String, Object> map = new HashMap<>();
                     map.put(mapTargetDir, targetDir);
+                    log.info("Found Dir we are deleting {}", targetDir);
                     return Mono.just(map);
                 })
                 //Get Connector and save it
@@ -239,10 +238,17 @@ public class DirService {
                 //Iterate Over bookmarks and delete them
                 .flatMap(map -> {
                     List<String> bookmarks = (List<String>) map.get(mapBookmarks);
+                    try {
+                        //IMPORTANT : After deleting we can't map as we get a void
+                        return bookmarkRepo.deleteAllById(bookmarks)
+                                .switchIfEmpty(Mono.error(new Exception("Throwing an exception to make sure mono is not empty")))
+                                //The map will never be executed as we get empty mono so we throw exception if empty. This will trigger the catch statement where we will return the map
+                                .flatMap(unused -> Mono.just(map));
+                    } catch (Exception e) {
+                        log.info("Successfully Threw Exception after deleting bookmarks");
+                    }
+                    return Mono.just(map);
 
-                    var updatedMap = bookmarkRepo.deleteAllById(bookmarks)
-                            .map(unused -> map);
-                    return updatedMap;
 
                 })
                 //Update connector by removing the bookmarks. WE WILL UPDATE CONNECTOR AT THE END OF CHAIN BECAUSE WE MIGHT HAVE SOME OTHER UPDATING TO DO ON IT
@@ -286,15 +292,17 @@ public class DirService {
                                 .map(entityDirs -> map);
                     }
                 })
-                //Update parentDir to have all childrenID if parentDir valid, else update connector to have all childrenID as rootDirs
+                //Update parentDir to have all childrenID if parentDir valid, else update connector to have all childrenID as rootDirs and delete targetDir ID
                 .map(map -> {
                     List<String> childrenIDs = (List<String>) map.get(mapChildrenID);
                     if (map.containsKey(mapParentDir)) {
                         EntityDir parentDir = (EntityDir) map.get(mapParentDir);
                         parentDir.getChildren().addAll(childrenIDs);
                     } else {
+                        EntityDir targetDir = (EntityDir) map.get(mapTargetDir);
                         EntityConnector conn = (EntityConnector) map.get(mapConn);
                         conn.getRootDirs().addAll(childrenIDs);
+                        conn.getRootDirs().remove(targetDir.get_id());
                     }
                     return map;
                 })
@@ -313,23 +321,20 @@ public class DirService {
                 //Delete the targetDir finally
                 .flatMap(
                         targetDir ->
-                                dirRepo.deleteById(targetDir.get_id())
-                                        .map(unused -> true)
+                        {
+                            try {
+                                return dirRepo.deleteById(targetDir.get_id())
+                                        .switchIfEmpty(Mono.error(new Exception("Dummy Exception to keep chain active because after deleting we get void so next map chain is never triggered")))
+                                        .map(unused -> true); //This will never happen, we will be entering the catch statement
 
+                            } catch (Exception e) {
+                                log.info("Successfully threw exception after deleting targetDir ");
+                            }
+                            return Mono.just(true);
+
+                        }
                 );
-
         return finalMono;
-
     }
-
-
-    public Mono<Boolean> moveDir() {
-        return null;
-    }
-
-    public Mono<Boolean> moveBookmark() {
-        return null;
-    }
-
 }
 
