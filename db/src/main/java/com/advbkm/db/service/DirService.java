@@ -3,20 +3,17 @@ package com.advbkm.db.service;
 
 import com.advbkm.db.models.entities.EntityConnector;
 import com.advbkm.db.models.entities.EntityDir;
-import com.advbkm.db.models.entities.EntityUser;
+import com.advbkm.db.models.exception.ResponseException;
+import com.advbkm.db.repo.RepoBookmark;
 import com.advbkm.db.repo.RepoConnector;
 import com.advbkm.db.repo.RepoDir;
-import com.advbkm.db.repo.RepoUsers;
-import com.advbkm.db.repo.connectors.RepoConnectorUserToDir;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.io.FileNotFoundException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Log4j2
@@ -24,15 +21,13 @@ import java.util.Map;
 public class DirService {
 
     private final RepoDir dirRepo;
-    private final RepoConnectorUserToDir connectorUserToDirRepo;
-    private final RepoUsers userRepo;
     private final RepoConnector connectorRepo;
+    private final RepoBookmark bookmarkRepo;
 
-    public DirService(RepoDir dirRepo, RepoConnectorUserToDir connectorUserToDirRepo, RepoUsers userRepo, RepoConnector connectorRepo) {
+    public DirService(RepoDir dirRepo, RepoConnector connectorRepo, RepoBookmark bookmarkRepo) {
         this.dirRepo = dirRepo;
-        this.connectorUserToDirRepo = connectorUserToDirRepo;
-        this.userRepo = userRepo;
         this.connectorRepo = connectorRepo;
+        this.bookmarkRepo = bookmarkRepo;
     }
 
 
@@ -163,164 +158,170 @@ public class DirService {
     }
 
     public Mono<Boolean> deleteDir(String dirID, String userID) {
+        /*
 
-        //Get the user
-        return userRepo.findById(userID).defaultIfEmpty(new EntityUser())
-                .flatMap(foundUser -> {
+        1. Get targerDir, validate creatorID and userID, must exist
+        2. Get Connector, must exist
+        3. Get parentID (if sub-dir), may or may-not exist. Throw error if it doesn't exist when it should, validate creatorID and userID of parentDir
+        4. Store childrenID, Bookmarks
+        5. Iterate bookmarks and delete them
+        6. Modify Connector to remove the deleted bookmarks (WE WILL SAVE THIS ENTITY AT THE FINALLY SECTION)
+        7. Check if parentDir is valid or not
 
-                    //Check if userID is valid
-                    if (foundUser.getEmail() == null || foundUser.getEmail().isEmpty()) {
-                        return Mono.error(new Exception("User ID is invalid"));
-                    }
+        IF VALID:
+        1. Iterate childrenID and get them.
+        2. Update their parent to parentDir ID
+        3. Save them back
+        4. Update parentDir to have all the children
+        5. Save parentDir
+        6. Delete targetDir
 
-                    // Get the dirEntity and check if it's creatorID match OR if userID is of admin type
-
-                    //Access the dir we are going to delete for several reasons
-                    return dirRepo.findById(dirID) //Mono<Boolean> type
-                            .defaultIfEmpty(new EntityDir())
-                            .flatMap(foundDir -> {
-
-                                if (foundDir.get_id() == null || foundDir.get_id().isEmpty())
-                                    return Mono.error(new FileNotFoundException("Directory with ID " + dirID + " not found"));
-
-                                var a = foundUser.getType().split(",");
-
-
-                                //Check if foundUser has right to delete the folder
-
-                                log.info("userID in dir is {} , and userID in user is {}", foundDir.getCreatorID(), foundUser.getEmail());
-
-                                if (!foundDir.getCreatorID().equalsIgnoreCase(foundUser.getEmail())) {
-
-                                    if (Arrays.asList(a).contains("ADMIN") == false) {
-                                        return Mono.error(new Exception("UserID of Requester do not match creatorID of deleting folder OR NO ADMIN RIGHTS"));
-                                    }
-                                }
-                                //Check if it has parent
-                                if (foundDir.getParent() == null || foundDir.getParent().isEmpty()) {
-                                    //foundDir is root dir and has no parent
-
-                                    //Get connector record, to remove foundDir ID from the dirs[] list and add foundDir children to the dirs[] list
-                                    return connectorUserToDirRepo.findById(foundDir.getCreatorID()) //Mono<Boolean> type
-                                            .flatMap(foundConnector -> {
-
-                                                //Check if foundDir has children
-                                                if (!(foundDir.getChildren() == null || foundDir.getChildren().isEmpty())) {
-
-                                                    //Children exist
-
-                                                    //We need to set the parentID of children to empty string as they are now root and have no parent
-                                                    return Flux.fromArray(foundDir.getChildren().toArray())
-                                                            .map(s -> (String) s)
-                                                            .flatMap(childID -> {
-
-                                                                //Access the child based on their ID
-                                                                return dirRepo.findById(childID)
-                                                                        .flatMap(child -> {
-
-                                                                            //Set parent to empty string
-                                                                            child.setParent("");
-
-                                                                            //Save the updated value to table
-                                                                            return dirRepo.save(child)
-                                                                                    .map(updatedChild -> updatedChild.get_id());
-                                                                        });
-                                                            })
-                                                            //After updating the values we can now update connector table and add these children ID as root for the creatorID
-                                                            .collectList()
-                                                            .flatMap(childrenIDs -> {
-
-                                                                foundConnector.getDirs().addAll(childrenIDs);
-                                                                foundConnector.getDirs().remove(foundDir.get_id());
-
-                                                                return connectorUserToDirRepo.save(foundConnector)
-                                                                        .flatMap(updatedConnector -> {
-
-                                                                            //Remove foundDir from record
-                                                                            return dirRepo.deleteById(foundDir.get_id())
-                                                                                    .map(e -> true);
-                                                                        });
-                                                            });
-                                                }
-
-                                                foundConnector.getDirs().remove(foundDir.get_id()); // remove foundDir's ID from root dirs list
-                                                //Save the updated foundConnector
-                                                return connectorUserToDirRepo.save(foundConnector)
-                                                        .flatMap(updatedConnector -> {
-
-                                                            //remove foundDir from record
-                                                            return dirRepo.deleteById(foundDir.get_id())
-                                                                    .map(e -> true);
-                                                        });
-
-                                            });
-                                } else {
-                                    //foundDir is sub dir
-
-                                    //Get parent before doing anything because we will need it in several tasks
-                                    return dirRepo.findById(foundDir.getParent()) //Mono<Boolean> type
-                                            .flatMap(parentDir -> {
-
-                                                if (!(foundDir.getChildren() == null || foundDir.getChildren().isEmpty())) {
-
-                                                    //Children exist and foundDir is a sub dir
-
-                                                    //Create flux of children so that we can update their parent ID to the parent ID of foundDir
-                                                    return Flux.fromArray(foundDir.getChildren().toArray()) //Mono<Boolean> type
-                                                            .map(s -> (String) s)
-                                                            .flatMap(childID -> {
-
-                                                                //Get the dir entity and update it's parent value
-                                                                return dirRepo.findById(childID) //Get the child
-
-                                                                        .flatMap(childEntity -> {
-
-                                                                            //Update the parent ID and save them again
-                                                                            childEntity.setParent(parentDir.get_id());
-
-                                                                            return dirRepo.save(childEntity).map(e -> childID);
-                                                                        });
+        IF NOT VALID:
+        1. Iterate childrenID and get them.
+        2. Set their parent to "".
+        3. Save them back
+        4. Update connector to have all children as rootDir
+        5. Delete TargetDir
 
 
-                                                            })
-                                                            .collectList()// (Mono<List<String>>) type. Collect the childrenID as list after updating it's parentID values in database so that we can update parent's children list
-                                                            .flatMap(strings -> {
+        FINALLY:
+        Save connector to db
+         */
 
-                                                                //Update parent's children value
-                                                                parentDir.getChildren().remove(foundDir.get_id());
-                                                                parentDir.getChildren().addAll(strings);
+        final String mapTargetDir = "targetDir";
+        final String mapConn = "foundConn";
+        final String mapParentDir = "parentDir";
+        final String mapChildrenID = "targetChildrenID";
+        final String mapBookmarks = "targetBookmarksID";
 
-                                                                //Now save it back and remove sub dir from record
-                                                                return dirRepo.save(parentDir)
-                                                                        .flatMap(updatedParentDir -> {
-
-                                                                            //Remove foundDir from record
-                                                                            return dirRepo.deleteById(foundDir.get_id()).map(e -> true);
-                                                                        });
-                                                            });
-
-
-                                                } else {
-
-                                                    //Child do not exist and foundDir is a sub dir
-
-                                                    //remove foundDir dirID from parent's children list
-                                                    parentDir.getChildren().remove(foundDir.get_id());
-                                                    return dirRepo.save(parentDir)
-                                                            .flatMap(updatedParentDir -> {
-
-                                                                //Remove foundDir From record
-                                                                return dirRepo.deleteById(foundDir.get_id()).map(e -> true);
-                                                            });
-                                                }
-                                            });
-
-
-                                }
+        //Get target Dir and save it
+        var finalMono = dirRepo.findById(dirID)
+                .switchIfEmpty(Mono.error(new ResponseException("Directory not found", 404)))
+                //Save targetDir to map after basic validation
+                .flatMap(targetDir -> {
+                    if (!targetDir.getCreatorID().equalsIgnoreCase(userID))
+                        return Mono.error(new ResponseException("UserID and Dir CreatorID do not match", 401));
+                    Map<String, Object> map = new HashMap<>();
+                    map.put(mapTargetDir, targetDir);
+                    return Mono.just(map);
+                })
+                //Get Connector and save it
+                .flatMap(map -> {
+                    return connectorRepo.findById(userID)
+                            .switchIfEmpty(Mono.error(new ResponseException("Connector not found", 404)))
+                            .map(conn -> {
+                                map.put(mapConn, conn);
+                                return map;
                             });
-                });
+                })
+                //Get parentDir and save ONLY IF targetDir is a sub dir
+                .flatMap(map -> {
+                    EntityDir dir = (EntityDir) map.get(mapTargetDir);
+                    boolean hasParent = dir.getParent() != null && !dir.getParent().isEmpty();
+                    if (hasParent) {
+                        Mono<Map<String, Object>> updatedMap = dirRepo.findById(dir.getParent())
+                                .switchIfEmpty(Mono.error(new ResponseException("Parent Dir not found when it should have existed", 404)))
+                                .map(parentDir -> {
+                                    map.put(mapParentDir, parentDir);
+                                    return map;
+                                });
+                        return updatedMap;
+                    }
+                    return Mono.just(map);
+                })
+                //Store childrenID and Bookmarks
+                .map(map -> {
+                    EntityDir dir = (EntityDir) map.get(mapTargetDir);
+                    map.put(mapBookmarks, dir.getBookmarks());
+                    map.put(mapChildrenID, dir.getChildren());
+                    return map;
+                })
+                //Iterate Over bookmarks and delete them
+                .flatMap(map -> {
+                    List<String> bookmarks = (List<String>) map.get(mapBookmarks);
+
+                    var updatedMap = bookmarkRepo.deleteAllById(bookmarks)
+                            .map(unused -> map);
+                    return updatedMap;
+
+                })
+                //Update connector by removing the bookmarks. WE WILL UPDATE CONNECTOR AT THE END OF CHAIN BECAUSE WE MIGHT HAVE SOME OTHER UPDATING TO DO ON IT
+                .map(map -> {
+                    EntityConnector conn = (EntityConnector) map.get(mapConn);
+                    List<String> bookmarks = (List<String>) map.get(mapBookmarks);
+                    conn.getBookmarks().removeAll(bookmarks);
+                    return map;
+                })
+                // Update Children ParentID and saving it back to database or ""
+                .flatMap(map -> {
+                    List<String> childrenIDs = (List<String>) map.get(mapChildrenID);
+                    if (map.containsKey(mapParentDir)) {
+                        EntityDir parentDir = (EntityDir) map.get(mapParentDir);
+                        return dirRepo.findAllById(childrenIDs)
+                                //Update the parentID of each child
+                                .map(child -> {
+                                    child.setParent(parentDir.get_id());
+                                    return child;
+                                })
+                                //After updating local values, save it back
+                                .flatMap(updatedLocalChild -> {
+                                    return dirRepo.save(updatedLocalChild);
+                                })
+                                //Convert the flux to mono
+                                .collectList()
+                                .map(entityDirs -> map);
+                    } else {
+                        return dirRepo.findAllById(childrenIDs)
+                                //Update the parentID to ""
+                                .map(child -> {
+                                    child.setParent("");
+                                    return child;
+                                })
+                                //After updating local values save it to db
+                                .flatMap(updatedLocalChild -> {
+                                    return dirRepo.save(updatedLocalChild);
+                                })
+                                //Convert flux to mono
+                                .collectList()
+                                .map(entityDirs -> map);
+                    }
+                })
+                //Update parentDir to have all childrenID if parentDir valid, else update connector to have all childrenID as rootDirs
+                .map(map -> {
+                    List<String> childrenIDs = (List<String>) map.get(mapChildrenID);
+                    if (map.containsKey(mapParentDir)) {
+                        EntityDir parentDir = (EntityDir) map.get(mapParentDir);
+                        parentDir.getChildren().addAll(childrenIDs);
+                    } else {
+                        EntityConnector conn = (EntityConnector) map.get(mapConn);
+                        conn.getRootDirs().addAll(childrenIDs);
+                    }
+                    return map;
+                })
+                //Save the updated parentDir to db if parentDir is valid, else save connector to db
+                .flatMap(map -> {
+                    if (map.containsKey(mapParentDir)) {
+                        EntityDir parentDir = (EntityDir) map.get(mapParentDir);
+                        return dirRepo.save(parentDir)
+                                .map(savedParentDir -> (EntityDir) map.get(mapTargetDir));
+                    } else {
+                        EntityConnector connector = (EntityConnector) map.get(mapConn);
+                        return connectorRepo.save(connector)
+                                .map(savedConn -> (EntityDir) map.get(mapTargetDir));
+                    }
+                })
+                //Delete the targetDir finally
+                .flatMap(
+                        targetDir ->
+                                dirRepo.deleteById(targetDir.get_id())
+                                        .map(unused -> true)
+
+                );
+
+        return finalMono;
 
     }
+
 
     public Mono<Boolean> moveDir() {
         return null;
