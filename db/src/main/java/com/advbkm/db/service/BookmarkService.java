@@ -282,7 +282,7 @@ public class BookmarkService {
                 //Delete the bookmark now
                 .flatMap(map -> {
                     return repoBookmark.deleteById(id)
-                            .map(unused -> true);
+                            .then(Mono.just(true));
                 })
                 ;
     }

@@ -158,6 +158,7 @@ public class DirService {
     }
 
     public Mono<Boolean> deleteDir(String dirID, String userID) {
+        log.info("delete dir service function triggered");
         /*
         1. Get targetDir, validate creatorID and userID, must exist
         2. Get Connector, must exist
@@ -193,15 +194,16 @@ public class DirService {
         final String mapBookmarks = "targetBookmarksID";
 
         //Get target Dir and save it
-        var finalMono = dirRepo.findById(dirID)
+        return dirRepo.findById(dirID)
                 .switchIfEmpty(Mono.error(new ResponseException("Directory not found", 404)))
                 //Save targetDir to map after basic validation
                 .flatMap(targetDir -> {
+
                     if (!targetDir.getCreatorID().equalsIgnoreCase(userID))
                         return Mono.error(new ResponseException("UserID and Dir CreatorID do not match", 401));
                     Map<String, Object> map = new HashMap<>();
                     map.put(mapTargetDir, targetDir);
-                    log.info("Found Dir we are deleting {}", targetDir);
+                    log.info("Chain 1 : Got Directory {} from db and saved it locally", targetDir);
                     return Mono.just(map);
                 })
                 //Get Connector and save it
@@ -210,6 +212,7 @@ public class DirService {
                             .switchIfEmpty(Mono.error(new ResponseException("Connector not found", 404)))
                             .map(conn -> {
                                 map.put(mapConn, conn);
+                                log.info("Chain 2 : Got Connector {} from db and saved it locally", conn);
                                 return map;
                             });
                 })
@@ -222,10 +225,12 @@ public class DirService {
                                 .switchIfEmpty(Mono.error(new ResponseException("Parent Dir not found when it should have existed", 404)))
                                 .map(parentDir -> {
                                     map.put(mapParentDir, parentDir);
+                                    log.info("Chain 2 : Got Parent Dir {} from db and saved it locally", parentDir);
                                     return map;
                                 });
                         return updatedMap;
                     }
+                    log.info("Chain 2 : No Parent Dir from db So returning back the original map value");
                     return Mono.just(map);
                 })
                 //Store childrenID and Bookmarks
@@ -233,33 +238,29 @@ public class DirService {
                     EntityDir dir = (EntityDir) map.get(mapTargetDir);
                     map.put(mapBookmarks, dir.getBookmarks());
                     map.put(mapChildrenID, dir.getChildren());
+                    log.info("Chain 3 : Stored children {} and bookmarks {} from Deleting Dir", dir.getChildren(), dir.getBookmarks());
                     return map;
                 })
                 //Iterate Over bookmarks and delete them
                 .flatMap(map -> {
                     List<String> bookmarks = (List<String>) map.get(mapBookmarks);
-                    try {
-                        //IMPORTANT : After deleting we can't map as we get a void
-                        return bookmarkRepo.deleteAllById(bookmarks)
-                                .switchIfEmpty(Mono.error(new Exception("Throwing an exception to make sure mono is not empty")))
-                                //The map will never be executed as we get empty mono so we throw exception if empty. This will trigger the catch statement where we will return the map
-                                .flatMap(unused -> Mono.just(map));
-                    } catch (Exception e) {
-                        log.info("Successfully Threw Exception after deleting bookmarks");
-                    }
-                    return Mono.just(map);
-
-
+                    //IMPORTANT : After deleting we can't map as we get a void,
+                    //Use Then to send custom mono after your action
+                    log.info("Chain 4 : Deleting all bookmarks from db in the directory's Bookmarks");
+                    return bookmarkRepo.deleteAllById(bookmarks)
+                            .then(Mono.just(map));
                 })
                 //Update connector by removing the bookmarks. WE WILL UPDATE CONNECTOR AT THE END OF CHAIN BECAUSE WE MIGHT HAVE SOME OTHER UPDATING TO DO ON IT
                 .map(map -> {
                     EntityConnector conn = (EntityConnector) map.get(mapConn);
                     List<String> bookmarks = (List<String>) map.get(mapBookmarks);
                     conn.getBookmarks().removeAll(bookmarks);
+                    log.info("Chain 5 : Removed bookmarks locally from Connector entity");
                     return map;
                 })
                 // Update Children ParentID and saving it back to database or ""
                 .flatMap(map -> {
+                    log.info("Updating children parentID");
                     List<String> childrenIDs = (List<String>) map.get(mapChildrenID);
                     if (map.containsKey(mapParentDir)) {
                         EntityDir parentDir = (EntityDir) map.get(mapParentDir);
@@ -275,7 +276,10 @@ public class DirService {
                                 })
                                 //Convert the flux to mono
                                 .collectList()
-                                .map(entityDirs -> map);
+                                .map(entityDirs -> {
+                                    log.info("Chain 6 : Updated ParentID of Children to Deleting Dir's ParentID {} in DB", parentDir.get_id());
+                                    return map;
+                                });
                     } else {
                         return dirRepo.findAllById(childrenIDs)
                                 //Update the parentID to ""
@@ -289,20 +293,26 @@ public class DirService {
                                 })
                                 //Convert flux to mono
                                 .collectList()
-                                .map(entityDirs -> map);
+                                .map(entityDirs -> {
+                                    log.info("Chain 6 : Updated ParentID of Children to Empty String in DB");
+                                    return map;
+                                });
                     }
                 })
                 //Update parentDir to have all childrenID if parentDir valid, else update connector to have all childrenID as rootDirs and delete targetDir ID
                 .map(map -> {
+                    EntityDir targetDir = (EntityDir) map.get(mapTargetDir);
                     List<String> childrenIDs = (List<String>) map.get(mapChildrenID);
                     if (map.containsKey(mapParentDir)) {
                         EntityDir parentDir = (EntityDir) map.get(mapParentDir);
                         parentDir.getChildren().addAll(childrenIDs);
+                        parentDir.getChildren().remove(targetDir.get_id());
+                        log.info("Updated Parent Dir to append ChildrenID of Deleting Dir's ChildrenID, and removed Deleting Dir's ID");
                     } else {
-                        EntityDir targetDir = (EntityDir) map.get(mapTargetDir);
                         EntityConnector conn = (EntityConnector) map.get(mapConn);
                         conn.getRootDirs().addAll(childrenIDs);
                         conn.getRootDirs().remove(targetDir.get_id());
+                        log.info("Updated RootDirs of Connector to have all ChildrenIDs of Deleting Dir, and removed Deleting Dir's ID");
                     }
                     return map;
                 })
@@ -310,10 +320,12 @@ public class DirService {
                 .flatMap(map -> {
                     if (map.containsKey(mapParentDir)) {
                         EntityDir parentDir = (EntityDir) map.get(mapParentDir);
+                        log.info("Saved updated Parent {} to DB", parentDir);
                         return dirRepo.save(parentDir)
                                 .map(savedParentDir -> (EntityDir) map.get(mapTargetDir));
                     } else {
                         EntityConnector connector = (EntityConnector) map.get(mapConn);
+                        log.info("Saved updated Connector {} to DB", connector);
                         return connectorRepo.save(connector)
                                 .map(savedConn -> (EntityDir) map.get(mapTargetDir));
                     }
@@ -322,19 +334,12 @@ public class DirService {
                 .flatMap(
                         targetDir ->
                         {
-                            try {
-                                return dirRepo.deleteById(targetDir.get_id())
-                                        .switchIfEmpty(Mono.error(new Exception("Dummy Exception to keep chain active because after deleting we get void so next map chain is never triggered")))
-                                        .map(unused -> true); //This will never happen, we will be entering the catch statement
-
-                            } catch (Exception e) {
-                                log.info("Successfully threw exception after deleting targetDir ");
-                            }
-                            return Mono.just(true);
-
+                            log.info("Deleted the Target Dir and return true");
+                            //IMPORTANT : Since delete function returns a void it's map will never be triggered.
+                            //Use then to send a mono of our choice after the action
+                            return dirRepo.deleteById(targetDir.get_id())
+                                    .then(Mono.just(true));
                         }
                 );
-        return finalMono;
     }
 }
-

@@ -41,11 +41,14 @@ public class DirController {
         return dirService.deleteDir(id, userID)
                 .map(b -> ResponseEntity.ok().body(new ReqResp<>(b, "Success")))
                 .onErrorResume(
-                        throwable -> Mono.just(
-                                ResponseEntity
-                                        .status(((ResponseException) throwable).getStatusCode())
-                                        .body(new ReqResp<>(false, throwable.getMessage()))
-                        )
+                        throwable -> {
+                            log.info("Exception in delete endpoint {}", throwable.getMessage());
+                            return Mono.just(
+                                    ResponseEntity
+                                            .status(((ResponseException) throwable).getStatusCode())
+                                            .body(new ReqResp<>(false, throwable.getMessage()))
+                            );
+                        }
                 );
     }
 }
