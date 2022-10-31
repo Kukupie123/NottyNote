@@ -27,13 +27,19 @@ public class TempController {
     @PostMapping("/create")
     public Mono<ResponseEntity<ReqResp<String>>> createTemplate(@RequestBody TemplateModel template, @RequestHeader("Authorization") String auth) {
         log.info("Create Template with struct : {}", template);
-
-
         String jwtToken = auth.substring(7);
         String userName = jwtService.getUserID(jwtToken);
         return templateService.createTemplate(template, userName)
                 .onErrorResume(throwable -> Mono.just(ResponseEntity.status(500).body(new ReqResp<>(null, throwable.getMessage()))));
 
+    }
+
+    public @DeleteMapping("/{id}")
+    Mono<ResponseEntity<ReqResp<Boolean>>> deleteTemp(@PathVariable String id, @RequestHeader("Authorization") String auth) {
+        String jwtToken = auth.substring(7);
+        String userName = jwtService.getUserID(jwtToken);
+        return templateService.deleteTemplate(id, userName)
+                .onErrorResume(throwable -> Mono.just(ResponseEntity.status(500).body(new ReqResp<>(null, throwable.getMessage()))));
 
     }
 }

@@ -12,7 +12,6 @@ public class URLs {
 
     public static final String TEMP_CREATE = "template/create";
     public static final String BKM_CREATE = "bookmark/create";
-    //http://localhost:8000/api/v1/db/bookmark/create
 
     public static String DIR_DELETE(String id) {
         return "dir/" + id;
@@ -21,6 +20,8 @@ public class URLs {
     public static String BKM_DELETE(String id) {
         return "bookmark/" + id;
     }
-
+    public static String TEMP_DELETE(String id) {
+        return "template/" + id;
+    }
 
 }
