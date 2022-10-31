@@ -6,6 +6,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.MongoId;
 
 import java.util.HashMap;
+import java.util.List;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -18,5 +19,6 @@ public class EntityTemplate {
     private String id;
     private String name;
     private String creatorID;
+    private List<String> bookmarks;
     private HashMap<String, TemplateField> struct; //name of field  : fieldStruct
 }

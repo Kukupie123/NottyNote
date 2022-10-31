@@ -41,6 +41,7 @@ public class BookmarkService {
         3. Validating if dirID is valid
         4. Validating if mandatory keys of templateID match up with the keys supplied
         5. Saving the bookmark.
+        6. Add the bookmarkID to template's bookmark list
         6. Adding bookmarkID to dir bookmarks list
         7. Adding the bookmarkID to connector
          */
@@ -97,7 +98,7 @@ public class BookmarkService {
                 .flatMap(foundTemp -> {
                     log.info("FINDING DIR ID {}", bookmark.getDirID());
 
-                    return repoDir.findById(bookmark.getDirID()).defaultIfEmpty(new EntityDir())
+                    return repoDir.findById(bookmark.getDirID()).switchIfEmpty(Mono.error(new ResponseException("Directory not found", 404)))
                             .map(foundDir -> {
                                 Map<String, Object> map = new HashMap<>();
                                 map.put(mapFoundTemp, foundTemp);
@@ -109,10 +110,6 @@ public class BookmarkService {
                 .flatMap(map -> {
                     EntityDir foundDir = (EntityDir) map.get(mapFoundDir);
                     log.info(foundDir);
-
-                    if (foundDir.get_id() == null || foundDir.get_id().isEmpty()) {
-                        return Mono.error(new ResponseException("Directory with the given ID not found.", 404));
-                    }
                     if (!foundDir.getCreatorID().equalsIgnoreCase(userID)) {
                         return Mono.error(new ResponseException("Directory Creator ID do not match userID extracted from JWT Token", 401));
                     }
@@ -120,17 +117,14 @@ public class BookmarkService {
                 })
                 //Template and Dir Valid, Now save the bookmark, put it in map and return the map
                 .flatMap(map -> {
-
                     return repoBookmark.save(bookmark)
                             .map(savedBKM -> {
-
                                 map.put(mapSavedBkm, savedBKM);
                                 return map;
                             });
                 })
                 // Update the bookmarks list of the directory
                 .map(map -> {
-
                     EntityDir foundDir = (EntityDir) map.get(mapFoundDir);
                     EntityBookmark savedBKM = (EntityBookmark) map.get(mapSavedBkm);
                     foundDir.getBookmarks().add(savedBKM.getId());
@@ -145,6 +139,21 @@ public class BookmarkService {
                                 map.put(mapFoundDir, updatedDir);
                                 return map;
                             });
+                })
+                // Update the template by adding the newly created bookmark
+                .map(map -> {
+                    EntityBookmark savedBkm = (EntityBookmark) map.get(mapSavedBkm);
+                    EntityTemplate template = (EntityTemplate) map.get(mapFoundTemp);
+                    template.getBookmarks().add(savedBkm.getId());
+                    return map;
+                })
+                // Save the updated template
+                .flatMap(map -> {
+                    EntityTemplate template = (EntityTemplate) map.get(mapFoundTemp);
+                    return repoTemplate.save(template)
+                            .map(
+                                    template1 -> map
+                            );
                 })
                 //Get/Create the connector, save it to map and return the map
                 .flatMap(map -> {
@@ -171,7 +180,9 @@ public class BookmarkService {
                             .map(updatedConn -> {
                                 return ((EntityBookmark) map.get(mapSavedBkm)).getId();
                             });
-                });
+                })
+                //Add the bookmarkID to bookmarks list of template
+                ;
 
 
     }
@@ -180,7 +191,10 @@ public class BookmarkService {
     public Mono<Boolean> deleteBookmark(String id, String userID) {
         /*
         1. Get the bookmark
-        2. Validate and Check if creatorID and userId match
+        2. Get template and validate
+        2. Validate and Check if creatorID and userId match among all them
+        3. Remove the bookmarkID from template
+        4. Save the updated template
         3. Get the directory based on ID
         4. Delete the bookmark from dir's bookmark list
         5. Save the updated dir
@@ -193,28 +207,46 @@ public class BookmarkService {
         String mapFoundBKM = "foundBKM";
         String mapFoundDir = "foundDir";
         String mapFoundConn = "foundConn";
+        String mapFoundTemp = "foundTemp";
 
-        return repoBookmark.findById(id).defaultIfEmpty(new EntityBookmark())
-                //Validate the bookmark we found
+        return repoBookmark.findById(id).switchIfEmpty(Mono.error(new ResponseException("Bookmark not found", 404)))
+                //Get the template
                 .flatMap(bookmark -> {
-                    if (bookmark.getId() == null || bookmark.getId().isEmpty())
-                        return Mono.error(new ResponseException("Bookmark with ID " + id + " Nof Found", 404));
-                    return Mono.just(bookmark);
+                    return repoTemplate.findById(bookmark.getTemplateID()).switchIfEmpty(Mono.error(new ResponseException("Template not found", 404)))
+                            .map(template -> {
+                                Map<String, Object> map = new HashMap<>();
+                                map.put(mapFoundTemp, template);
+                                return map;
+                            });
                 })
-                //Validate the creatorId and userID
-                .flatMap(bookmark -> {
-                    if (!bookmark.getCreatorID().equalsIgnoreCase(userID)) {
+                //Validate the creatorId and userID among all of these
+                .flatMap(map -> {
+                    EntityBookmark bookmark = (EntityBookmark) map.get(mapFoundBKM);
+                    EntityTemplate template = (EntityTemplate) map.get(mapFoundTemp);
+                    if (!bookmark.getCreatorID().equalsIgnoreCase(userID) && !bookmark.getCreatorID().equalsIgnoreCase(template.getCreatorID())) {
                         return Mono.error(new ResponseException(String.format("Creator ID of the bookmark %s and userID  %s do not match. CreatorID of bookmark ", bookmark.getCreatorID(), userID), 401));
                     }
-                    return Mono.just(bookmark);
+                    return Mono.just(map);
                 })
-                //Get the directory based on dirID and return a map containing both objects
-                .flatMap(bookmark -> {
+                //Remove bookmarkID from template
+                .map(map -> {
+                    EntityTemplate template = (EntityTemplate) map.get(mapFoundTemp);
+                    EntityBookmark bookmark = (EntityBookmark) map.get(mapFoundBKM);
+                    template.getBookmarks().remove(bookmark.getId());
+                    return map;
+                })
+                //Save the updated template
+                .flatMap(map -> {
+                    EntityTemplate template = (EntityTemplate) map.get(mapFoundTemp);
+                    return repoTemplate.save(template)
+                            .map(template1 -> map);
+                })
+                //Get the directory based on dirID
+                .flatMap(map -> {
+                    EntityBookmark bookmark = (EntityBookmark) map.get(mapFoundBKM);
                     return repoDir.findById(bookmark.getDirID())
-                            .defaultIfEmpty(new EntityDir())
+                            .switchIfEmpty(Mono.error(new ResponseException("Directory not found", 404)))
                             .map(foundDir -> {
-
-                                Map<String, Object> map = new HashMap<>();
                                 map.put(mapFoundDir, foundDir);
                                 map.put(mapFoundBKM, bookmark);
                                 return map;
@@ -224,28 +256,11 @@ public class BookmarkService {
                 .flatMap(map -> {
                     EntityBookmark bookmark = (EntityBookmark) map.get(mapFoundBKM);
                     return repoConnector.findById(bookmark.getCreatorID())
-                            .defaultIfEmpty(new EntityConnector())
+                            .switchIfEmpty(Mono.error(new ResponseException("Connector not found", 404)))
                             .map(entityConnector -> {
                                 map.put(mapFoundConn, entityConnector);
                                 return map;
                             });
-                })
-                //Validate the dir we got
-                .flatMap(map -> {
-                    EntityDir foundDir = (EntityDir) map.get(mapFoundDir);
-                    if (foundDir.get_id() == null || foundDir.get_id().isEmpty())
-                        return Mono.error(new ResponseException("Directory missing, database is fucked!", 404));
-
-                    return Mono.just(map);
-
-                })
-                //Validate the conn we got
-                .flatMap(map -> {
-                    EntityConnector connector = (EntityConnector) map.get(mapFoundConn);
-                    if (connector.getUserID() == null || connector.getUserID().isEmpty()) {
-                        return Mono.error(new ResponseException("Connector with the userID not found", 404));
-                    }
-                    return Mono.just(map);
                 })
                 //Update the dir's bookmarks list
                 .map(map -> {
@@ -264,7 +279,6 @@ public class BookmarkService {
                 })
                 // Update Connector
                 .map(map -> {
-
                     EntityConnector connector = (EntityConnector) map.get(mapFoundConn);
                     EntityBookmark bookmark = (EntityBookmark) map.get(mapFoundBKM);
                     connector.getBookmarks().remove(bookmark.getId());
@@ -272,7 +286,6 @@ public class BookmarkService {
                 })
                 //Save the newly updated conn
                 .flatMap(map -> {
-
                     EntityConnector connector = (EntityConnector) map.get(mapFoundConn);
                     return repoConnector.save(connector)
                             .map(c -> {

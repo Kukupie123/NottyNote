@@ -7,6 +7,7 @@ import com.advbkm.db.models.exception.ResponseException;
 import com.advbkm.db.repo.RepoBookmark;
 import com.advbkm.db.repo.RepoConnector;
 import com.advbkm.db.repo.RepoDir;
+import com.advbkm.db.repo.RepoTemplate;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -23,11 +24,13 @@ public class DirService {
     private final RepoDir dirRepo;
     private final RepoConnector connectorRepo;
     private final RepoBookmark bookmarkRepo;
+    private final RepoTemplate templateRepo;
 
-    public DirService(RepoDir dirRepo, RepoConnector connectorRepo, RepoBookmark bookmarkRepo) {
+    public DirService(RepoDir dirRepo, RepoConnector connectorRepo, RepoBookmark bookmarkRepo, RepoTemplate templateRepo) {
         this.dirRepo = dirRepo;
         this.connectorRepo = connectorRepo;
         this.bookmarkRepo = bookmarkRepo;
+        this.templateRepo = templateRepo;
     }
 
 
@@ -192,6 +195,7 @@ public class DirService {
         final String mapParentDir = "parentDir";
         final String mapChildrenID = "targetChildrenID";
         final String mapBookmarks = "targetBookmarksID";
+        final String mapTemplate = "targetTemp";
 
         //Get target Dir and save it
         return dirRepo.findById(dirID)
@@ -240,6 +244,37 @@ public class DirService {
                     map.put(mapChildrenID, dir.getChildren());
                     log.info("Chain 3 : Stored children {} and bookmarks {} from Deleting Dir", dir.getChildren(), dir.getBookmarks());
                     return map;
+                })
+                //Access each bookmark and get its templateID and save it the list to a map
+                .flatMap(map -> {
+                    map.put(mapTemplate, new ArrayList<String>());
+                    List<String> bookmarks = (List<String>) map.get(mapBookmarks);
+                    return bookmarkRepo.findAllById(bookmarks)
+                            //Access it's templateID
+                            .map(bookmark -> {
+                                ((List<String>) map.get(mapTemplate)).add(bookmark.getTemplateID());
+                                return bookmark;
+                            })
+                            //Collect all flux operation
+                            .collectList()
+                            .map(entityBookmarks -> map);
+                })
+                //Access each template now and remove the bookmark list, save it back
+                .flatMap(map -> {
+                    List<String> temps = (List<String>) map.get(mapTemplate);
+
+                    return templateRepo.findAllById(temps)
+                            //remove the bookmarks
+                            .map(template -> {
+                                List<String> bookmarks = (List<String>) map.get(mapBookmarks);
+                                template.getBookmarks().removeAll(bookmarks);
+                                return template;
+                            })
+                            //Save the templates
+                            .flatMap(template -> templateRepo.save(template))
+                            .collectList()
+                            .map(entityTemplates -> map)
+                            ;
                 })
                 //Iterate Over bookmarks and delete them
                 .flatMap(map -> {
