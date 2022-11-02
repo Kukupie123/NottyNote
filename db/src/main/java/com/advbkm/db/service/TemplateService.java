@@ -1,5 +1,6 @@
 package com.advbkm.db.service;
 
+import com.advbkm.db.models.entities.EntityBookmark;
 import com.advbkm.db.models.entities.EntityConnector;
 import com.advbkm.db.models.entities.TemplateEntity.EntityTemplate;
 import com.advbkm.db.models.exception.ResponseException;
@@ -97,6 +98,7 @@ public class TemplateService {
         final String mapTemp = "temp";
         final String mapBookmarks = "bookmarks";
         final String mapDirs = "dirs";
+        final String mapConn = "conn";
 
 
         return repoTemp.findById(templateID)
@@ -166,6 +168,30 @@ public class TemplateService {
                     return repoBookmark.deleteAllById(bookmarks)
                             .then(Mono.just(map));
 
+                })
+                //Get the connector
+                .flatMap(map -> {
+                    EntityTemplate template = (EntityTemplate) map.get(mapTemp);
+                    return repoConnector.findById(template.getCreatorID())
+                            .map(entityConnector -> {
+                                map.put(mapConn, entityConnector);
+                                return map;
+                            });
+                })
+                //Update the connector by removing the templateID as well as bookmarks
+                .map(map -> {
+                    EntityTemplate template = (EntityTemplate) map.get(mapTemp);
+                    List<String> bookmarks = (List<String>) map.get(mapBookmarks);
+                    EntityConnector connector = (EntityConnector) map.get(mapConn);
+                    connector.getBookmarks().removeAll(bookmarks);
+                    connector.getTemplates().remove(template.getId());
+                    return map;
+                })
+                //Save the updated map to collection
+                .flatMap(map -> {
+                    EntityConnector connector = (EntityConnector) map.get(mapConn);
+                    return repoConnector.save(connector)
+                            .map(entityConnector -> map);
                 })
                 //Delete the template
                 .flatMap(map -> {

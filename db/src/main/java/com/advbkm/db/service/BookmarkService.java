@@ -216,6 +216,7 @@ public class BookmarkService {
                             .map(template -> {
                                 Map<String, Object> map = new HashMap<>();
                                 map.put(mapFoundTemp, template);
+                                map.put(mapFoundBKM, bookmark);
                                 return map;
                             });
                 })
