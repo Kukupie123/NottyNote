@@ -12,7 +12,7 @@ Webflux)_.
 2. [Backend](#Backend) :
     1. [ Database ](#Database)
     2. [Services](#Services)
-    3. FAQ
+    3. [FAQ](#FAQ)
 4. Frontend :
     1. WIP
 
@@ -95,9 +95,25 @@ Every interaction with the database is done by this service. <br> Registering us
 Creating Notty Notes are some examples of database interaction <br>
 Database Service has to take care of making sure every table has their data in sync during creation, modification and
 deletion. <br>
-To understand it we can take an example where  : <br>
+To understand this we can take an example where  : <br>
 **User has deleted a Notty Layout.**
 
 - The service will need to get all the Notty Notes created with that Layout and delete them.
 - It will then need to access the directories which had those bookmark IDs and remove them.
-- And only then, the Notty layout will be finally deleted.
+- Only then, the Notty layout will be finally deleted.
+
+## FAQ
+####**Q : How does your authentication system work? <br>**
+A: Gateway service is going to be the one who is going to talk to the clients. Every endpoint is closed behind authentication except Login and Register.
+When a user logs in the gateway generates a JWT token and sends it to the client. The client will then need to use this for every request as a bearer token.
+The JWT token's subject will contain the userID which will be extracted by the gateway service if needed. <br>
+####Q : How did you avoid call back hell?
+A: I avoided callback hell by making sure I only do one transformation per Map/FlatMap. If I need data from upper chain in lower chain but can't get it because I already transformed, I make use of HashMaps to store previous objects. I am aware of `Zip` functionality of Mono/Flux, but I find it easier to work with Maps than tuples.
+
+####Q : What did you learn from this project?
+A: 
+- Using generalized Response Exception Model
+- Using Generalized Response Model
+- Maintaining Clean code when dealing with long chains
+- Converting Mono of List into flux and then collecting them back as Mono of List after processing them
+- Authentication using Spring Security in Webflux
