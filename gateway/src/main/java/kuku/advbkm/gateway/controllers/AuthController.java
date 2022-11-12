@@ -3,11 +3,10 @@ package kuku.advbkm.gateway.controllers;
 
 import kuku.advbkm.gateway.configs.Security.MongoUSerDetailService;
 import kuku.advbkm.gateway.configs.Security.MongoUserDetails;
-import kuku.advbkm.gateway.models.UserModel;
 import kuku.advbkm.gateway.models.ReqResp.ReqResp;
+import kuku.advbkm.gateway.models.UserModel;
 import kuku.advbkm.gateway.service.DbUserService;
 import kuku.advbkm.gateway.service.JWTService;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -26,15 +25,12 @@ public class AuthController {
     final MongoUSerDetailService userService;
     final JWTService jwtService;
     final DbUserService dbUserService;
-    @Qualifier("dummy_MongoUserDetails") //Makes sure that we get the correct bean
-    final UserDetails dummyUserDetail; //Dummy UserDetails Bean that we created in configs.beans.DummyBeans to use in functions below
 
-    public AuthController(PasswordEncoder passwordEncoder, MongoUSerDetailService userService, JWTService jwtService, DbUserService dbUserService, UserDetails dummyUserDetail) {
+    public AuthController(PasswordEncoder passwordEncoder, MongoUSerDetailService userService, JWTService jwtService, DbUserService dbUserService) {
         this.passwordEncoder = passwordEncoder;
         this.userService = userService;
         this.jwtService = jwtService;
         this.dbUserService = dbUserService;
-        this.dummyUserDetail = dummyUserDetail;
     }
 
     @PostMapping("/reg")
@@ -49,8 +45,9 @@ public class AuthController {
 
     @PostMapping("/login")
     public Mono<ResponseEntity<ReqResp<String>>> login(@RequestBody UserModel userLogin) {
+        System.out.println("LOGIN ENDPOINT TRIGGERED");
         //find the user and if not found create an anonymous class
-        Mono<UserDetails> user = userService.findByUsername(userLogin.getEmail()).defaultIfEmpty(dummyUserDetail);
+        Mono<UserDetails> user = userService.findByUsername(userLogin.getEmail()).switchIfEmpty(Mono.error(new Exception("User not registered")));
 
         //Transform UserDetail Mono to response entity as well as handle exception which might have occurred due to internal process
         var userMap = user.map(u -> {

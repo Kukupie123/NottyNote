@@ -1,6 +1,8 @@
 package kuku.advbkm.gateway.configs.Security;
 
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
@@ -9,15 +11,42 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.reactive.CorsWebFilter;
+import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
+import org.springframework.web.reactive.config.CorsRegistry;
+import org.springframework.web.reactive.config.WebFluxConfigurer;
 
 /*
 Link to material used as reference
 https://www.youtube.com/watch?v=wyl06YqMxaU&t=161s
  */
+@Configuration
 @EnableWebFluxSecurity
-public class SecurityConfig {
-
+public class SecurityConfig implements WebFluxConfigurer {
     //We can add @Bean annotations because EnableWebFluxSecurity has @Configuration annotation already
+
+    @Override
+    public void addCorsMappings(CorsRegistry corsRegistry) {
+        System.out.println("HELLO NIGGER");
+        corsRegistry.addMapping("/**")
+                .allowedOrigins("*")
+                .allowedMethods("*")
+                .maxAge(3600);
+    }
+
+    @Bean
+    public CorsWebFilter corsWebFilter() {
+        CorsConfiguration corsConfiguration = new CorsConfiguration();
+        corsConfiguration.setAllowCredentials(true);
+        corsConfiguration.addAllowedHeader("*");
+        corsConfiguration.addAllowedMethod("*");
+        corsConfiguration.addAllowedOrigin("*");
+        corsConfiguration.addExposedHeader(HttpHeaders.SET_COOKIE);
+        UrlBasedCorsConfigurationSource corsConfigurationSource = new UrlBasedCorsConfigurationSource();
+        corsConfigurationSource.registerCorsConfiguration("/**", corsConfiguration);
+        return new CorsWebFilter(corsConfigurationSource);
+    }
 
     //Used for encoding passwords
     @Bean

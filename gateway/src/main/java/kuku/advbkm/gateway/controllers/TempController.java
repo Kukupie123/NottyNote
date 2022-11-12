@@ -10,7 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
-
+@CrossOrigin(value = "**") //Allow all origin, all headers, All Http methods.
 @Log4j2
 @RestController
 @RequestMapping("/api/v1/gate/temp/")
