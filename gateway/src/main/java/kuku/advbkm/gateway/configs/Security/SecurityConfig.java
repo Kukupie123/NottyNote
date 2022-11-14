@@ -12,10 +12,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
 import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.reactive.CorsConfigurationSource;
 import org.springframework.web.cors.reactive.CorsWebFilter;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
-import org.springframework.web.reactive.config.CorsRegistry;
-import org.springframework.web.reactive.config.WebFluxConfigurer;
 
 /*
 Link to material used as reference
@@ -23,17 +22,20 @@ https://www.youtube.com/watch?v=wyl06YqMxaU&t=161s
  */
 @Configuration
 @EnableWebFluxSecurity
-public class SecurityConfig implements WebFluxConfigurer {
+public class SecurityConfig {
     //We can add @Bean annotations because EnableWebFluxSecurity has @Configuration annotation already
 
-    @Override
-    public void addCorsMappings(CorsRegistry corsRegistry) {
-        System.out.println("HELLO NIGGER");
-        corsRegistry.addMapping("/**")
-                .allowedOrigins("*")
-                .allowedMethods("*")
-                .maxAge(3600);
+    public @Bean
+    CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.addAllowedHeader("*");
+        configuration.addAllowedOrigin("*");
+        configuration.addAllowedMethod("*");
+        UrlBasedCorsConfigurationSource urlBasedCorsConfigurationSource = new UrlBasedCorsConfigurationSource();
+        urlBasedCorsConfigurationSource.registerCorsConfiguration("/**", configuration);
+        return urlBasedCorsConfigurationSource;
     }
+
 
     @Bean
     public CorsWebFilter corsWebFilter() {
@@ -70,7 +72,7 @@ public class SecurityConfig implements WebFluxConfigurer {
      * Security Note 1 : This bean is going to override the default security config. We set the rules and configs of the security here.
      */
     @Bean
-    public SecurityWebFilterChain securityFilterChain(ServerHttpSecurity http, AuthManager jwtAuthManager, AuthConverter jwtAuthConverter) {
+    public SecurityWebFilterChain securityFilterChain(ServerHttpSecurity http, AuthManager jwtAuthManager, AuthConverter jwtAuthConverter, CorsConfigurationSource corsConfigurationSource) {
         //NOTE : The parameters are injected by spring as they have been marked as component/Bean class
 
         /*
@@ -89,6 +91,8 @@ public class SecurityConfig implements WebFluxConfigurer {
                 .httpBasic().disable() // disable httpBasic as we are going to use JWT
                 .formLogin().disable() //disable form login
                 .csrf().disable() //disable csrf, I don't know what this is for. People say to enable this when using web app
+                .cors().configurationSource(corsConfigurationSource)//Disable cors
+                .and()
                 .build();
 
 
