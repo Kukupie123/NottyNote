@@ -18,6 +18,7 @@ class PageLogin extends StatefulWidget {
 class _PageLoginState extends State<PageLogin> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final TextEditingController nameController = TextEditingController();
 
   late final Stream<String> loginStatusStream;
   late final StreamController<String> loginStatusStreamController;
@@ -43,6 +44,13 @@ class _PageLoginState extends State<PageLogin> {
             initialData: "",
           ),
           TextField(
+            controller: nameController,
+            keyboardType: TextInputType.text,
+            decoration: InputDecoration(
+              label: Text("Name"),
+            ),
+          ),
+          TextField(
             controller: emailController,
             keyboardType: TextInputType.emailAddress,
             decoration: InputDecoration(
@@ -62,7 +70,7 @@ class _PageLoginState extends State<PageLogin> {
                 onPressed: loginPressed,
                 icon: Icon(Icons.login),
               ),
-              TextButton(onPressed: () {}, child: Text("Register"))
+              TextButton(onPressed: registerPressed, child: Text("Register"))
             ],
           ),
         ],
@@ -71,8 +79,7 @@ class _PageLoginState extends State<PageLogin> {
   }
 
   Future<void> loginPressed() async {
-    var userService = Provider.of<ServiceProvider>(context, listen: false);
-    var userProvider = Provider.of<UserProvider>(context, listen: false);
+    var serviceProvider = Provider.of<ServiceProvider>(context, listen: false);
 
     if (emailController.text.isEmpty || passwordController.text.isEmpty) {
       loginStatusStreamController.add("Email and/or password field empty");
@@ -82,10 +89,36 @@ class _PageLoginState extends State<PageLogin> {
     }
     loginStatusStreamController.add("Logging In.");
     try {
-      var token = await userService.userService
+      var userProvider = Provider.of<UserProvider>(context, listen: false);
+      var token = await serviceProvider.userService
           .login(emailController.text, passwordController.text);
       userProvider.setToken(token);
       _goToHome(token);
+    } on Exception catch (e) {
+      loginStatusStreamController.add(e.toString());
+    }
+  }
+
+  Future<void> registerPressed() async {
+    var serviceProvider = Provider.of<ServiceProvider>(context, listen: false);
+
+    if (emailController.text.isEmpty ||
+        passwordController.text.isEmpty ||
+        nameController.text.isEmpty) {
+      loginStatusStreamController.add("Email and/or password field empty");
+      await Future.delayed(Duration(seconds: 5));
+      loginStatusStreamController.add("");
+      return;
+    }
+
+    loginStatusStreamController.add("Registering User");
+    try {
+      var success = await serviceProvider.userService.reg(
+          nameController.text, emailController.text, passwordController.text);
+      if (success)
+        loginStatusStreamController.add("Registered Successfully");
+      else
+        loginStatusStreamController.add("Registration Failed");
     } on Exception catch (e) {
       loginStatusStreamController.add(e.toString());
     }

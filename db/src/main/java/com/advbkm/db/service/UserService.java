@@ -30,11 +30,10 @@ public class UserService {
 
         //Set user to true
         user.setType("USER");
-        Mono<EntityUser> monoUser = userRepo.insert(new EntityUser(user.getEmail(), user.getPassword(), user.getName(), user.getType()))
-                .onErrorMap(err -> new Exception(err.getMessage()))
-                .defaultIfEmpty(dummyBean); //Same as above
 
-        return monoUser;
+        return userRepo.insert(new EntityUser(user.getEmail(), user.getPassword(), user.getName(), user.getType()))
+                .onErrorMap(err -> new Exception(err.getMessage()))
+                .defaultIfEmpty(dummyBean);
 
 
     }

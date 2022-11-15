@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:ui/page/Home/PageHome.dart';
 import 'package:ui/page/login/PageLogin.dart';
 import 'package:ui/provider/ServiceProvider.dart';
 import 'package:ui/provider/UserProvider.dart';
@@ -47,6 +48,8 @@ class Wrapper extends StatefulWidget {
 class _WrapperState extends State<Wrapper> {
   @override
   Widget build(BuildContext context) {
+    //Try to get local token. If it exist then we are going to go to home page.
+    //TODO : Validate the token by sending a dummy req and seeing if the token works. If it does then we are going to go to the homepage
     return FutureBuilder(
       future: setupData(),
       builder: (context, snapshot) {
@@ -54,9 +57,9 @@ class _WrapperState extends State<Wrapper> {
           String? token =
               Provider.of<UserProvider>(context, listen: false).jwtToken;
           if (token == null || token.isEmpty) return PageLogin();
-          return Text("Welcome home your token is $token");
+          return PageHome();
         }
-        return Text("Loading");
+        return Scaffold(body: Text("Initializing Website please wait..."),);
       },
     );
   }

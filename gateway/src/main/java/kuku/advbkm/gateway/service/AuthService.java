@@ -26,7 +26,7 @@ public class AuthService {
     }
 
     public Mono<ResponseEntity<ReqResp<String>>> login(String userID, String password) {
-        Mono<UserDetails> user = userService.findByUsername(userID).switchIfEmpty(Mono.error(new ResponseExceptionModel("User not registered", 404)));
+        Mono<UserDetails> user = userService.findByUsername(userID.toLowerCase()).switchIfEmpty(Mono.error(new ResponseExceptionModel("User not registered", 404)));
 
         return user.map(u -> {
             //Check if password and username matches
@@ -41,7 +41,7 @@ public class AuthService {
     public Mono<ResponseEntity<ReqResp<Boolean>>> reg(String userID, String password, String name) {
         if (userID.isEmpty() || password.isEmpty() || name.isEmpty())
             return Mono.error(new ResponseExceptionModel("Invalid Field", 401));
-        MongoUserDetails user = new MongoUserDetails(userID, "", name, "USER");
+        MongoUserDetails user = new MongoUserDetails(userID.toLowerCase(), "", name, "USER");
         user.setPassword(passwordEncoder.encode(password));
         return dbUserService.addUser(user)
                 .thenReturn(ResponseEntity.ok().body(new ReqResp<>(true, ""))
