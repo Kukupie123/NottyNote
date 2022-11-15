@@ -1,6 +1,5 @@
 package com.advbkm.db.service;
 
-import com.advbkm.db.models.entities.EntityBookmark;
 import com.advbkm.db.models.entities.EntityConnector;
 import com.advbkm.db.models.entities.TemplateEntity.EntityTemplate;
 import com.advbkm.db.models.exception.ResponseException;
@@ -50,7 +49,7 @@ public class TemplateService {
         template.setBookmarks(new ArrayList<>());
 
 
-        var finalMono = repoTemp.save(template)
+        return repoTemp.save(template)
                 //Get Connector record or create a new one, then return a map
                 .flatMap(savedTemplate -> {
                     Map<String, Object> map = new HashMap<>();
@@ -71,14 +70,13 @@ public class TemplateService {
                     return map;
 
                 })
-                //Save the updated connector, return the templateID
+                //Save the updated connector to db, return the templateID
                 .flatMap(map -> {
                     EntityConnector conn = (EntityConnector) map.get(mapFoundConnector);
                     String templateID = ((EntityTemplate) map.get(mapSavedTemplate)).getId();
                     return repoConnector.save(conn)
                             .map(updatedConn -> templateID);
                 });
-        return finalMono;
 
     }
 
@@ -124,9 +122,7 @@ public class TemplateService {
                     List<String> bookmarks = (List<String>) map.get(mapBookmarks);
                     return Flux.fromIterable(bookmarks)
                             //Get each bookmark
-                            .flatMap(s -> {
-                                return repoBookmark.findById(s);
-                            })
+                            .flatMap(s -> repoBookmark.findById(s))
                             //Store the dirID in map
                             .map(bookmark -> {
                                 List<String> dirs = (List<String>) map.get(mapDirs);
@@ -143,9 +139,7 @@ public class TemplateService {
                     List<String> dirs = (List<String>) map.get(mapDirs);
                     return Flux.fromIterable(dirs)
                             //Get each dir
-                            .flatMap(s -> {
-                                return repoDir.findById(s);
-                            })
+                            .flatMap(s -> repoDir.findById(s))
                             //Update the dir bookmark list by removing all the bookmarks
                             .map(entityDir -> {
                                 List<String> bookmarks = (List<String>) map.get(mapBookmarks);
@@ -153,9 +147,7 @@ public class TemplateService {
                                 return entityDir;
                             })
                             //Save the updated dir back
-                            .flatMap(entityDir -> {
-                                return repoDir.save(entityDir);
-                            })
+                            .flatMap(entityDir -> repoDir.save(entityDir))
                             //Collect all flux operation into a mono
                             .collectList()
                             //return back the map
@@ -194,10 +186,8 @@ public class TemplateService {
                             .map(entityConnector -> map);
                 })
                 //Delete the template
-                .flatMap(map -> {
-                    return repoTemp.deleteById(templateID)
-                            .then(Mono.just(true));
-                })
+                .flatMap(map -> repoTemp.deleteById(templateID)
+                        .then(Mono.just(true)))
                 ;
     }
 }

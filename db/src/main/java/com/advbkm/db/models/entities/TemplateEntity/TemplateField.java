@@ -8,6 +8,6 @@ import lombok.*;
 @NoArgsConstructor
 @ToString
 public class TemplateField {
-    private String fieldType;
+    private LayoutFieldType fieldType;
     private boolean isOptional;
 }

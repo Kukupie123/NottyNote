@@ -1,6 +1,7 @@
 package com.advbkm.db.models.entities;
 
 
+import com.advbkm.db.models.entities.TemplateEntity.LayoutFieldType;
 import lombok.*;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.MongoId;
@@ -21,5 +22,5 @@ public class EntityBookmark {
     private String dirID;
     private String name;
     private boolean isPublic;
-    private HashMap<String, Object> data;
+    private HashMap<String, Object> data; //Field Name : Field Data
 }

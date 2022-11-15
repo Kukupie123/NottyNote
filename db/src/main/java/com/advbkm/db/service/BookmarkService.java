@@ -5,6 +5,7 @@ import com.advbkm.db.models.entities.EntityBookmark;
 import com.advbkm.db.models.entities.EntityConnector;
 import com.advbkm.db.models.entities.EntityDir;
 import com.advbkm.db.models.entities.TemplateEntity.EntityTemplate;
+import com.advbkm.db.models.entities.TemplateEntity.LayoutFieldType;
 import com.advbkm.db.models.exception.ResponseException;
 import com.advbkm.db.repo.RepoBookmark;
 import com.advbkm.db.repo.RepoConnector;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Log4j2
@@ -59,14 +61,9 @@ public class BookmarkService {
         }
 
 
-        return repoTemplate.findById(bookmark.getTemplateID()).defaultIfEmpty(new EntityTemplate()) //Get the template
+        return repoTemplate.findById(bookmark.getTemplateID()).switchIfEmpty(Mono.error(new ResponseException("Template with specified ID not found", 404))) //Get the template
                 //validate the template returned
                 .flatMap(foundTemplate -> {
-
-                    if (foundTemplate.getId() == null || foundTemplate.getId().isEmpty()) {
-                        return Mono.error(new ResponseException("Template wth ID " + bookmark.getTemplateID() + " NOT FOUND", 404));
-                    }
-
                     if (!foundTemplate.getCreatorID().equalsIgnoreCase(userID)) {
                         return Mono.error(new ResponseException("Template Creator ID do not match userID extracted from JWT Token", 401));
                     }
@@ -74,25 +71,52 @@ public class BookmarkService {
                 })
                 //Validate if the bookmark has all the mandatory fields supplied to it
                 .flatMap(foundTemp -> {
-
                     try {
-                        foundTemp.getStruct().forEach((key, value) -> {
-
-                            //Check if bookmark contains key
-                            if (!bookmark.getData().containsKey(key)) {
-
+                        foundTemp.getStruct().forEach((fieldName, fieldStruct) -> {
+                            //Check if bookmark contains key and fieldType and the data match
+                            if (!bookmark.getData().containsKey(fieldName)) {
                                 //If key is not present, it has to be optional
-                                if (!value.isOptional())
-                                    throw new ResponseException("Bookmark is missing mandatory field ( " + key + " )", HttpStatus.BAD_REQUEST.value());
+                                if (!fieldStruct.isOptional())
+                                    throw new ResponseException("Bookmark is missing mandatory field ( " + fieldName + " )", HttpStatus.BAD_REQUEST.value());
                             }
                         });
                     } catch (ResponseException e) {
                         return Mono.error(e);
                     }
-
                     return Mono.just(foundTemp);
-
-
+                })
+                //Validate if the bookmark's data are the same as the template's Structs. Also check if the data match the fieldType
+                .map(foundTemp -> {
+                    try {
+                        bookmark.getData().forEach((fieldName, fieldData) -> {
+                            //Does the bookmark contain only the fields that the template has
+                            if (foundTemp.getStruct().containsKey(fieldName)) {
+                                //The template has the field. Check if the data matches the fieldType
+                                LayoutFieldType fieldType = foundTemp.getStruct().get(fieldName).getFieldType();
+                                switch (fieldType) {
+                                    case TEXT, LINK -> {
+                                        var castedData = (String) fieldData;
+                                    }
+                                    case IMAGE -> {
+                                        //IDK How to validate this yet
+                                    }
+                                    case LIST_TEXT, LIST_LINK -> {
+                                        var castedData = (List<String>) fieldData;
+                                    }
+                                    case LIST_IMAGE -> {
+                                        //IDK How to validate this yet
+                                        var castedData = (List<Object>) fieldData;
+                                    }
+                                }
+                            } else {
+                                //The template is missing the bookmark's field
+                                throw new ResponseException("Bookmark has field that the template doesn't.", 403);
+                            }
+                        });
+                        return foundTemp;
+                    } catch (Exception e) {
+                        throw new ResponseException(e.getMessage(), 500);
+                    }
                 })
                 //Get the directory, return a map which will store the argument object to avoid losing it during transformation using map/flatmap
                 .flatMap(foundTemp -> {
@@ -116,13 +140,11 @@ public class BookmarkService {
                     return Mono.just(map);
                 })
                 //Template and Dir Valid, Now save the bookmark, put it in map and return the map
-                .flatMap(map -> {
-                    return repoBookmark.save(bookmark)
-                            .map(savedBKM -> {
-                                map.put(mapSavedBkm, savedBKM);
-                                return map;
-                            });
-                })
+                .flatMap(map -> repoBookmark.save(bookmark)
+                        .map(savedBKM -> {
+                            map.put(mapSavedBkm, savedBKM);
+                            return map;
+                        }))
                 // Update the bookmarks list of the directory
                 .map(map -> {
                     EntityDir foundDir = (EntityDir) map.get(mapFoundDir);
@@ -156,14 +178,11 @@ public class BookmarkService {
                             );
                 })
                 //Get/Create the connector, save it to map and return the map
-                .flatMap(map -> {
-
-                    return repoConnector.findById(userID).defaultIfEmpty(new EntityConnector(userID))
-                            .map(foundConn -> {
-                                map.put(mapFoundConn, foundConn);
-                                return map;
-                            });
-                })
+                .flatMap(map -> repoConnector.findById(userID).defaultIfEmpty(new EntityConnector(userID))
+                        .map(foundConn -> {
+                            map.put(mapFoundConn, foundConn);
+                            return map;
+                        }))
                 //Add the bookmark ID to the bookmarks list of connector
                 .map(map -> {
 
@@ -177,9 +196,7 @@ public class BookmarkService {
 
                     EntityConnector connector = (EntityConnector) map.get(mapFoundConn);
                     return repoConnector.save(connector)
-                            .map(updatedConn -> {
-                                return ((EntityBookmark) map.get(mapSavedBkm)).getId();
-                            });
+                            .map(updatedConn -> ((EntityBookmark) map.get(mapSavedBkm)).getId());
                 })
                 //Add the bookmarkID to bookmarks list of template
                 ;
@@ -211,15 +228,13 @@ public class BookmarkService {
 
         return repoBookmark.findById(id).switchIfEmpty(Mono.error(new ResponseException("Bookmark not found", 404)))
                 //Get the template
-                .flatMap(bookmark -> {
-                    return repoTemplate.findById(bookmark.getTemplateID()).switchIfEmpty(Mono.error(new ResponseException("Template not found", 404)))
-                            .map(template -> {
-                                Map<String, Object> map = new HashMap<>();
-                                map.put(mapFoundTemp, template);
-                                map.put(mapFoundBKM, bookmark);
-                                return map;
-                            });
-                })
+                .flatMap(bookmark -> repoTemplate.findById(bookmark.getTemplateID()).switchIfEmpty(Mono.error(new ResponseException("Template not found", 404)))
+                        .map(template -> {
+                            Map<String, Object> map = new HashMap<>();
+                            map.put(mapFoundTemp, template);
+                            map.put(mapFoundBKM, bookmark);
+                            return map;
+                        }))
                 //Validate the creatorId and userID among all of these
                 .flatMap(map -> {
                     EntityBookmark bookmark = (EntityBookmark) map.get(mapFoundBKM);
@@ -289,15 +304,11 @@ public class BookmarkService {
                 .flatMap(map -> {
                     EntityConnector connector = (EntityConnector) map.get(mapFoundConn);
                     return repoConnector.save(connector)
-                            .map(c -> {
-                                return map;
-                            });
+                            .map(c -> map);
                 })
                 //Delete the bookmark now
-                .flatMap(map -> {
-                    return repoBookmark.deleteById(id)
-                            .then(Mono.just(true));
-                })
+                .flatMap(map -> repoBookmark.deleteById(id)
+                        .then(Mono.just(true)))
                 ;
     }
 
