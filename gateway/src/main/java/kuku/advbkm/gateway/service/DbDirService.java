@@ -10,6 +10,9 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import util.urls.URLs;
 
+import java.util.List;
+import java.util.Map;
+
 @Log4j2
 @Service
 public class DbDirService {
@@ -36,7 +39,7 @@ public class DbDirService {
         );
 
 
-        Mono<ResponseEntity<ReqResp<String>>> transformedResponse = client.post().bodyValue(dir).header("Authorization", userID)
+        return client.post().bodyValue(dir).header("Authorization", userID)
                 .exchangeToMono(resp -> {
 
                     Mono<ReqResp> body = resp.bodyToMono(ReqResp.class);
@@ -51,8 +54,6 @@ public class DbDirService {
 
 
                 });
-
-        return transformedResponse;
 
 
     }
@@ -86,5 +87,50 @@ public class DbDirService {
                     });
 
                 });
+    }
+
+    public Mono<ResponseEntity<ReqResp<DirectoryModel>>> getDir(String dirID, String token) {
+        String url = URLs.DB_HOST(8000) + URLs.DIR_GET(dirID);
+        String userID = jwtService.getUserID(token);
+
+        WebClient client = WebClient.create(url);
+        return client.get()
+                .header("Authorization", userID)
+                .exchangeToMono(resp -> {
+                    var bodyMono = resp.bodyToMono(ReqResp.class);
+                    return bodyMono.map(body -> {
+                        log.info(body.getData().toString());
+                        var castedData = mapToDir((Map<String, Object>) body.getData());
+                        return ResponseEntity.status(resp.statusCode()).body(new ReqResp<>(castedData, body.getMsg()));
+                    });
+                });
+    }
+
+    public Mono<ResponseEntity<ReqResp<List<DirectoryModel>>>> getChildrenDirs(String parentID, String token) {
+        String userID = jwtService.getUserID(token);
+        String url = URLs.DB_HOST(8000) + URLs.DIR_GET_CHILDREN(parentID);
+
+        WebClient client = WebClient.create(url);
+        return client
+                .get()
+                .header("Authorization", userID)
+                .exchangeToMono(resp -> {
+                    var body = resp.bodyToMono(ReqResp.class);
+                    return body.map(reqResp -> {
+                        List<DirectoryModel> castedData = (List<DirectoryModel>) reqResp.getData();
+                        return ResponseEntity.status(resp.statusCode()).body(new ReqResp<>(castedData, reqResp.getMsg()));
+                    });
+                });
+    }
+
+    private DirectoryModel mapToDir(Map<String, Object> map) {
+        String id = (String) map.get("id");
+        String creatorID = (String) map.get("creatorID");
+        String isPublic = (String) map.get("isPublic");
+        String name = (String) map.get("name");
+        String parent = (String) map.get("parent");
+        List<String> children = (List<String>) map.get("children");
+        List<String> bookmarks = (List<String>) map.get("bookmarks");
+        return new DirectoryModel(id, creatorID, isPublic, name, parent, children, bookmarks);
     }
 }

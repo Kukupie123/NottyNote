@@ -17,9 +17,18 @@ public class URLs {
         return "dir/" + id;
     }
 
+    public static String DIR_GET(String id) {
+        return "dir/" + id;
+    }
+
+    public static String DIR_GET_CHILDREN(String parentID) {
+        return "dir/getChildren/" + parentID;
+    }
+
     public static String BKM_DELETE(String id) {
         return "bookmark/" + id;
     }
+
     public static String TEMP_DELETE(String id) {
         return "template/" + id;
     }

@@ -44,7 +44,7 @@ public class DirService {
 
 
         //Set id to null to generate random ID and do other process
-        dir.set_id(null);
+        dir.setId(null);
         dir.setBookmarks(new ArrayList<>()); //Newly created dir don't have bookmarks
         dir.setChildren(new ArrayList<>()); // Newly created dir don't have children
         dir.setCreatorID(userID);
@@ -80,7 +80,7 @@ public class DirService {
                     //Get parentDIR
                     .flatMap(parentDir -> {
 
-                        if (parentDir.get_id() == null || parentDir.get_id().isEmpty())
+                        if (parentDir.getId() == null || parentDir.getId().isEmpty())
                             return Mono.error(new ResponseException("Parent ID is not valid", 404));
 
                         //Create a map to store parentDir object
@@ -108,7 +108,7 @@ public class DirService {
                         var parentDir = (EntityDir) map.get(mapParentDirName);
                         var savedDir = (EntityDir) map.get(mapSavedDirName);
 
-                        parentDir.getChildren().add(savedDir.get_id());
+                        parentDir.getChildren().add(savedDir.getId());
 
                         return map;
                     })
@@ -120,7 +120,7 @@ public class DirService {
                         EntityDir savedDir = (EntityDir) map.get(mapSavedDirName);
 
                         return dirRepo.save(parentDir)
-                                .map(savedParent -> savedDir.get_id());
+                                .map(savedParent -> savedDir.getId());
 
 
                     });
@@ -142,12 +142,12 @@ public class DirService {
 
                     EntityConnector foundConnector = (EntityConnector) map.get(mapFoundConnectorName);
                     EntityDir savedDir = (EntityDir) map.get(mapSavedDirName);
-                    foundConnector.getRootDirs().add(savedDir.get_id());
+                    foundConnector.getRootDirs().add(savedDir.getId());
                     return map;
                 })
                 //Save the updated Connector
                 .flatMap(map -> connectorRepo.save((EntityConnector) map.get(mapFoundConnectorName))
-                        .map(updatedConnector -> ((EntityDir) map.get(mapSavedDirName)).get_id()));
+                        .map(updatedConnector -> ((EntityDir) map.get(mapSavedDirName)).getId()));
 
 
     }
@@ -291,7 +291,7 @@ public class DirService {
                         return dirRepo.findAllById(childrenIDs)
                                 //Update the parentID of each child
                                 .map(child -> {
-                                    child.setParent(parentDir.get_id());
+                                    child.setParent(parentDir.getId());
                                     return child;
                                 })
                                 //After updating local values, save it back
@@ -299,7 +299,7 @@ public class DirService {
                                 //Convert the flux to mono
                                 .collectList()
                                 .map(entityDirs -> {
-                                    log.info("Chain 6 : Updated ParentID of Children to Deleting Dir's ParentID {} in DB", parentDir.get_id());
+                                    log.info("Chain 6 : Updated ParentID of Children to Deleting Dir's ParentID {} in DB", parentDir.getId());
                                     return map;
                                 });
                     } else {
@@ -326,12 +326,12 @@ public class DirService {
                     if (map.containsKey(mapParentDir)) {
                         EntityDir parentDir = (EntityDir) map.get(mapParentDir);
                         parentDir.getChildren().addAll(childrenIDs);
-                        parentDir.getChildren().remove(targetDir.get_id());
+                        parentDir.getChildren().remove(targetDir.getId());
                         log.info("Updated Parent Dir to append ChildrenID of Deleting Dir's ChildrenID, and removed Deleting Dir's ID");
                     } else {
                         EntityConnector conn = (EntityConnector) map.get(mapConn);
                         conn.getRootDirs().addAll(childrenIDs);
-                        conn.getRootDirs().remove(targetDir.get_id());
+                        conn.getRootDirs().remove(targetDir.getId());
                         log.info("Updated RootDirs of Connector to have all ChildrenIDs of Deleting Dir, and removed Deleting Dir's ID");
                     }
                     return map;
@@ -357,19 +357,34 @@ public class DirService {
                             log.info("Deleted the Target Dir and return true");
                             //IMPORTANT : Since delete function returns a void it's map will never be triggered.
                             //Use then to send a mono of our choice after the action
-                            return dirRepo.deleteById(targetDir.get_id())
+                            return dirRepo.deleteById(targetDir.getId())
                                     .then(Mono.just(true));
                         }
                 );
     }
 
-    public Mono<List<EntityDir>> getDirs(String userID, String parentDirID) {
+    public Mono<EntityDir> getDir(String dirID, String userID) {
+        return dirRepo.findById(dirID).switchIfEmpty(Mono.error(new ResponseException("Directory with the given ID not found", 404)))
+                .flatMap(entityDir -> {
+                    if (!entityDir.getCreatorID().equalsIgnoreCase(userID) && entityDir.getIsPublic().equalsIgnoreCase("false")) {
+                        return Mono.error(new ResponseException("No Access to the directory", 401));
+                    }
+                    return Mono.just(entityDir);
+                })
+                ;
+    }
+
+    public Mono<List<EntityDir>> getChildrenDirs(String userID, String parentDirID) {
         /*
         1. Check if its has parentID or not
         2. If not we simply get root dir list from connector and get dirs based on the list and return it
         3. If it has root dir we access the dir and then get its children list and return it
          */
-        if (parentDirID == null || parentDirID.isEmpty())
+        if (parentDirID == null || parentDirID.isEmpty()) {
+            return Mono.error(new ResponseException("Parent ID is invalid", 403));
+        }
+
+        if (parentDirID.equalsIgnoreCase("*"))
             return connectorRepo.findById(userID)
                     .flatMapMany(conn -> {
                         List<String> dirs = conn.getRootDirs();

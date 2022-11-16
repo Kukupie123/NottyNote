@@ -15,7 +15,7 @@ import java.util.List;
 public class DirectoryModel {
 
 
-    private String _id;
+    private String id;
     private String creatorID;
     private String isPublic;
     private String name;

@@ -15,7 +15,7 @@ import java.util.List;
 @Document(collection = "Directories")
 public class EntityDir {
     @MongoId
-    private String _id;
+    private String id;
     private String creatorID;
     private String isPublic;
     private String name;

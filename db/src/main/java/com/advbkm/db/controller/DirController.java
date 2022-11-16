@@ -25,7 +25,7 @@ public class DirController {
 
     public @PostMapping("/create")
     Mono<ResponseEntity<ReqResp<String>>> createDir(@RequestBody EntityDir dir, @RequestHeader("Authorization") String userID) {
-        System.out.println("CREATE DIR CALLED " + dir);
+        log.info("Create dir for {} called ", userID);
         Mono<String> createdDir = dirService.createDir(dir, userID);
 
         return createdDir.map(
@@ -36,6 +36,12 @@ public class DirController {
                         .body(new ReqResp<>(null, throwable.getMessage()))
 
         ));
+    }
+
+    public @GetMapping("/{dirID}")
+    Mono<ResponseEntity<ReqResp<EntityDir>>> getDir(@PathVariable String dirID, @RequestHeader("Authorization") String userID) {
+        return dirService.getDir(dirID, userID)
+                .map(entityDir -> ResponseEntity.ok(new ReqResp<>(entityDir, "")));
     }
 
     public @DeleteMapping("/{id}")
@@ -55,10 +61,10 @@ public class DirController {
                 );
     }
 
-    public @GetMapping("/{parentID}")
+    public @GetMapping("/getChildren/{parentID}")
     Mono<ResponseEntity<ReqResp<List<EntityDir>>>> getDirs(@RequestHeader("Authorization") String userID, @PathVariable String parentID) {
         log.info("Get Dirs endpoint triggered for user {} and parentID {}", userID, parentID);
-        return dirService.getDirs(userID, parentID)
+        return dirService.getChildrenDirs(userID, parentID)
                 .map(e -> ResponseEntity.ok().body(new ReqResp<>(e, "")))
                 .onErrorResume(
                         throwable -> {
