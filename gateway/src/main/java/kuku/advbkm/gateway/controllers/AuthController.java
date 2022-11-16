@@ -8,14 +8,13 @@ import kuku.advbkm.gateway.models.UserModel;
 import kuku.advbkm.gateway.service.AuthService;
 import kuku.advbkm.gateway.service.DbUserService;
 import kuku.advbkm.gateway.service.JWTService;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
+@Log4j2
 @RestController()
 @RequestMapping("/api/v1/gate/auth/")
 public class AuthController {
@@ -47,11 +46,17 @@ public class AuthController {
 
     @PostMapping("/login")
     public Mono<ResponseEntity<ReqResp<String>>> login(@RequestBody UserModel userLogin) {
+        log.info("Logging endpoint {}", userLogin.toString());
         return authService.login(userLogin.getEmail(), userLogin.getPassword())
                 .onErrorResume(throwable -> {
                     var throwableCasted = (ResponseExceptionModel) throwable;
                     return Mono.just(ResponseEntity.status(throwableCasted.getStatusCode()).body(new ReqResp<>(null, throwableCasted.getMessage())));
                 });
+    }
+
+    public @GetMapping("/validate")
+    Mono<ResponseEntity<Boolean>> val(@RequestHeader("Authorization") String authHeader) {
+        return Mono.just(ResponseEntity.ok(true));
     }
 
 

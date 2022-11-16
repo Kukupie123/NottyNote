@@ -14,10 +14,18 @@ class UserProvider with ChangeNotifier {
   Future<void> initializeProvider() async {
     _preferences = await SharedPreferences.getInstance();
     jwtToken = _preferences!.getString(_prefTokenKey);
+    notifyListeners();
   }
 
   void setToken(String token) {
     _preferences!.setString(_prefTokenKey, token);
-    jwtToken = _preferences!.getString(_prefTokenKey);
+    jwtToken = _preferences!.getString(token);
+    notifyListeners();
+  }
+
+  void logout() {
+    _preferences!.remove(_prefTokenKey);
+    jwtToken = null;
+    notifyListeners();
   }
 }

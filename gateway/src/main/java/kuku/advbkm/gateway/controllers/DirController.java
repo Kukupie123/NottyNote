@@ -55,6 +55,7 @@ public class DirController {
     public @GetMapping("/getChildren/{parentID}")
     Mono<ResponseEntity<ReqResp<List<DirectoryModel>>>> getDirs(@PathVariable String parentID, @RequestHeader("Authorization") String authHeader) {
         String jwtToken = authHeader.substring(7);
+        log.info("Get childrenDirs with auth {} and parent ID {}", jwtToken, parentID);
         return dbService.getChildrenDirs(parentID, jwtToken);
     }
 

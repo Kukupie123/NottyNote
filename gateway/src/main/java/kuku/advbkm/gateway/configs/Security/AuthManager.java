@@ -1,6 +1,7 @@
 package kuku.advbkm.gateway.configs.Security;
 
 import kuku.advbkm.gateway.service.JWTService;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -21,6 +22,7 @@ Note to self : Understand Map and FlatMap properly. They are so confusing
  * This function is also going to be using JWTService to validate and get the username
  */
 @Component
+@Log4j2
 public class AuthManager implements ReactiveAuthenticationManager {
     final JWTService jwtService; //JWT token validation and getting username
     final MongoUSerDetailService mongoUserDetailService; //For Talking with DBService and returning a MongoUserDetail of the user we are trying to authenticate
@@ -43,27 +45,21 @@ public class AuthManager implements ReactiveAuthenticationManager {
                     //Why did we use flatmap? Because if we don't the return type becomes Mono<Mono<Object>> instead of Mono<Authentication> as Map covers the return type with a Mono
                     String userName = jwtService.getUserID(auth.getCredentials()); //Get the username using JWT Service
                     Mono<UserDetails> user = mongoUserDetailService.findByUsername(userName).switchIfEmpty(Mono.error(new Exception("User not found"))); //Get MongoUserDetails by using our MongoUserDetailService
-
                     //Why do we use flatmap? Because If we map to transform an object we can't return Mono.error as this will change the type to Mono<Mono<Exception>> But we need Mono<Authentication>
-                    Mono<Authentication> userToAuthMap = user.flatMap(u -> {
+                    return user.<Authentication>flatMap(u -> {
                         //Check if user is valid
                         if (u.getUsername() == null) {
+                            log.info("User not found");
                             return Mono.error(new Exception("User not found"));
                         }
-
                         //validate token
                         if (jwtService.isValid(auth.getCredentials(), u.getUsername())) {
                             return Mono.just(new UsernamePasswordAuthenticationToken(u.getUsername(), u.getPassword(), u.getAuthorities()));
                         }
+                        log.info("Invalid / Expired Token : {}", auth.getCredentials());
                         return Mono.error(new Exception("Invalid/Expired Token"));
                     });
-
-                    return userToAuthMap;
-                })
-                //Although It  Should never happen because we throw error but just adding as extra safety check
-                .switchIfEmpty(Mono.error(new Exception("No Auth Header Found")))
-                //Finally, if we catch any error, which we will if auth fails we will throw a general exception along with the message
-                .onErrorResume(e -> Mono.error(new Exception(e.getMessage())));
+                });
     }
 
 }

@@ -30,46 +30,24 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: "Kuku's NottyNote",
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: const PageHome(),
+        title: "Kuku's NottyNote",
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+        ),
     );
   }
 }
 
-class Wrapper extends StatefulWidget {
-  const Wrapper({Key? key}) : super(key: key);
 
-  @override
-  State<Wrapper> createState() => _WrapperState();
-}
+/*
+On app start we are going to have a wrapper that is going to try to load local token
+if found then it will validate it by sending it to server for validation
+if validated we are going to go to homescreen
 
-class _WrapperState extends State<Wrapper> {
-  @override
-  Widget build(BuildContext context) {
-    //Try to get local token. If it exist then we are going to go to home page.
-    //TODO : Validate the token by sending a dummy req and seeing if the token works. If it does then we are going to go to the homepage
-    return FutureBuilder(
-      future: setupData(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.done) {
-          String? token =
-              Provider.of<UserProvider>(context, listen: false).jwtToken;
-          if (token == null || token.isEmpty) return PageLogin();
-          return PageHome();
-        }
-        return Scaffold(
-          body: Text("Initializing Website please wait..."),
-        );
-      },
-    );
-  }
+if no local found we are going to go to login screen
+if validating token fails we are again going to go to login
 
-  Future<void> setupData() async {
-    await Provider.of<UserProvider>(context, listen: false)
-        .initializeProvider();
-    return;
-  }
-}
+for other requests. we are always going to first validate. If validation  fails we are going to return to login
+
+We will need a root consumer who is going to return us to login when validation fails no matter where we are in the application
+ */

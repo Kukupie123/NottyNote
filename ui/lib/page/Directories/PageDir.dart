@@ -20,14 +20,22 @@ class _PageDirState extends State<PageDir> {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
+    return SingleChildScrollView(
       child: Column(
         children: [
-          ListView(
-            children: [],
-          ),
-          ListView(
-            children: [],
+          //Directory loader
+          FutureBuilder(
+            future: loadRootDirs(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.done) {
+                return ListView(
+                    children: dirs
+                        .map((e) =>
+                            TextButton(onPressed: () {}, child: Text(e.name)))
+                        .toList());
+              }
+              return const Text("Loading dirs");
+            },
           )
         ],
       ),
@@ -40,7 +48,7 @@ class _PageDirState extends State<PageDir> {
     var userProvider = Provider.of<UserProvider>(context, listen: false);
 
     dirs = await serviceProvider.dirService
-        .getUserDirs(userProvider.jwtToken!, "");
+        .getUserDirs(userProvider.jwtToken!, "*");
     return;
   }
 
