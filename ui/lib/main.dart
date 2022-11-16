@@ -30,11 +30,12 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-        title: "Kuku's NottyNote",
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-        ),
-        home: const Wrapper());
+      title: "Kuku's NottyNote",
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: const PageHome(),
+    );
   }
 }
 
@@ -59,7 +60,9 @@ class _WrapperState extends State<Wrapper> {
           if (token == null || token.isEmpty) return PageLogin();
           return PageHome();
         }
-        return Scaffold(body: Text("Initializing Website please wait..."),);
+        return Scaffold(
+          body: Text("Initializing Website please wait..."),
+        );
       },
     );
   }

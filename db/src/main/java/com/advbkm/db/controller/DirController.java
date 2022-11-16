@@ -9,6 +9,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Log4j2
 @RestController
 @RequestMapping("/api/v1/db/dir")
@@ -47,6 +50,23 @@ public class DirController {
                                     ResponseEntity
                                             .status(((ResponseException) throwable).getStatusCode())
                                             .body(new ReqResp<>(false, throwable.getMessage()))
+                            );
+                        }
+                );
+    }
+
+    public @GetMapping("/{parentID}")
+    Mono<ResponseEntity<ReqResp<List<EntityDir>>>> getDirs(@RequestHeader("Authorization") String userID, @PathVariable String parentID) {
+        log.info("Get Dirs endpoint triggered for user {} and parentID {}", userID, parentID);
+        return dirService.getDirs(userID, parentID)
+                .map(e -> ResponseEntity.ok().body(new ReqResp<>(e, "")))
+                .onErrorResume(
+                        throwable -> {
+                            log.info("Exception in delete endpoint {}", throwable.getMessage());
+                            return Mono.just(
+                                    ResponseEntity
+                                            .status(((ResponseException) throwable).getStatusCode())
+                                            .body(new ReqResp<>(new ArrayList<>(), throwable.getMessage()))
                             );
                         }
                 );

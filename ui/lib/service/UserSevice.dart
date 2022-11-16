@@ -7,7 +7,7 @@ import 'package:ui/utils/Utils.dart';
 
 class UserService {
   Future<String> login(String email, String password) async {
-    String url = Utils.AUTH_BASE_URL + Utils.AUTH_LOGIN_URL;
+    String url = URLs.AUTH_BASE_URL + URLs.AUTH_LOGIN_URL;
 
     String body = jsonEncode({"email": email, "password": password});
     http.Response response = await http.post(Uri.parse(url),
@@ -21,7 +21,7 @@ class UserService {
   }
 
   Future<bool> reg(String name, String email, String password) async {
-    String url = Utils.AUTH_BASE_URL + Utils.AUTH_REG_URL;
+    String url = URLs.AUTH_BASE_URL + URLs.AUTH_REG_URL;
 
     String body =
         jsonEncode({"email": email, "password": password, "name": name});

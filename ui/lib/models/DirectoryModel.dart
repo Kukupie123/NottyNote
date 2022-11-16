@@ -1,3 +1,5 @@
+// ignore_for_file: file_names
+
 class DirModel {
   final String id;
   final String creatorID;

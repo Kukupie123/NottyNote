@@ -1,6 +1,11 @@
-// ignore_for_file: prefer_const_literals_to_create_immutables
+// ignore_for_file: prefer_const_literals_to_create_immutables, file_names
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:ui/models/DirectoryModel.dart';
+import 'package:ui/provider/ServiceProvider.dart';
+import 'package:ui/provider/UserProvider.dart';
+import 'package:ui/service/DirService.dart';
 
 class PageDir extends StatefulWidget {
   const PageDir({Key? key}) : super(key: key);
@@ -10,6 +15,9 @@ class PageDir extends StatefulWidget {
 }
 
 class _PageDirState extends State<PageDir> {
+  List<DirModel> dirs = [];
+  String currentDirID = "";
+
   @override
   Widget build(BuildContext context) {
     return Expanded(
@@ -25,4 +33,16 @@ class _PageDirState extends State<PageDir> {
       ),
     );
   }
+
+  Future<void> loadRootDirs() async {
+    var serviceProvider = Provider.of<ServiceProvider>(context, listen: false);
+
+    var userProvider = Provider.of<UserProvider>(context, listen: false);
+
+    dirs = await serviceProvider.dirService
+        .getUserDirs(userProvider.jwtToken!, "");
+    return;
+  }
+
+  Future<void> loadDirBookmarks() async {}
 }

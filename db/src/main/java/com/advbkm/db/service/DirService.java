@@ -10,6 +10,7 @@ import com.advbkm.db.repo.RepoDir;
 import com.advbkm.db.repo.RepoTemplate;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
@@ -91,8 +92,7 @@ public class DirService {
                         //Save the dir
                         Mono<EntityDir> savedDirMono = dirRepo.save(dir);
 
-                        Mono<Map<String, Object>> mapMono = savedDirMono.map(savedDir -> {
-
+                        return savedDirMono.<Map<String, Object>>map(savedDir -> {
                             //Store parentDir and savedDir in a map and return it
                             HashMap<String, Object> map = new HashMap<>();
                             map.put(mapParentDirName, parentDir);
@@ -100,8 +100,6 @@ public class DirService {
 
                             return map;
                         });
-
-                        return mapMono;
                     })
                     //Update Children list of parent
                     .map(map -> {
@@ -131,17 +129,14 @@ public class DirService {
 
         return connectorRepo.findById(userID).defaultIfEmpty(new EntityConnector(userID))
                 //Save the dir, return a map with foundConnector and savedDir
-                .flatMap(foundConnector -> {
+                .flatMap(foundConnector -> dirRepo.save(dir)
+                        .map(savedDir -> {
 
-                    return dirRepo.save(dir)
-                            .map(savedDir -> {
-
-                                HashMap<String, Object> map = new HashMap<>();
-                                map.put(mapSavedDirName, savedDir);
-                                map.put(mapFoundConnectorName, foundConnector);
-                                return map;
-                            });
-                })
+                            HashMap<String, Object> map = new HashMap<>();
+                            map.put(mapSavedDirName, savedDir);
+                            map.put(mapFoundConnectorName, foundConnector);
+                            return map;
+                        }))
                 //Update the values of connector
                 .map(map -> {
 
@@ -151,11 +146,8 @@ public class DirService {
                     return map;
                 })
                 //Save the updated Connector
-                .flatMap(map -> {
-
-                    return connectorRepo.save((EntityConnector) map.get(mapFoundConnectorName))
-                            .map(updatedConnector -> ((EntityDir) map.get(mapSavedDirName)).get_id());
-                });
+                .flatMap(map -> connectorRepo.save((EntityConnector) map.get(mapFoundConnectorName))
+                        .map(updatedConnector -> ((EntityDir) map.get(mapSavedDirName)).get_id()));
 
 
     }
@@ -211,28 +203,25 @@ public class DirService {
                     return Mono.just(map);
                 })
                 //Get Connector and save it
-                .flatMap(map -> {
-                    return connectorRepo.findById(userID)
-                            .switchIfEmpty(Mono.error(new ResponseException("Connector not found", 404)))
-                            .map(conn -> {
-                                map.put(mapConn, conn);
-                                log.info("Chain 2 : Got Connector {} from db and saved it locally", conn);
-                                return map;
-                            });
-                })
+                .flatMap(map -> connectorRepo.findById(userID)
+                        .switchIfEmpty(Mono.error(new ResponseException("Connector not found", 404)))
+                        .map(conn -> {
+                            map.put(mapConn, conn);
+                            log.info("Chain 2 : Got Connector {} from db and saved it locally", conn);
+                            return map;
+                        }))
                 //Get parentDir and save ONLY IF targetDir is a sub dir
                 .flatMap(map -> {
                     EntityDir dir = (EntityDir) map.get(mapTargetDir);
                     boolean hasParent = dir.getParent() != null && !dir.getParent().isEmpty();
                     if (hasParent) {
-                        Mono<Map<String, Object>> updatedMap = dirRepo.findById(dir.getParent())
+                        return dirRepo.findById(dir.getParent())
                                 .switchIfEmpty(Mono.error(new ResponseException("Parent Dir not found when it should have existed", 404)))
                                 .map(parentDir -> {
                                     map.put(mapParentDir, parentDir);
                                     log.info("Chain 2 : Got Parent Dir {} from db and saved it locally", parentDir);
                                     return map;
                                 });
-                        return updatedMap;
                     }
                     log.info("Chain 2 : No Parent Dir from db So returning back the original map value");
                     return Mono.just(map);
@@ -306,9 +295,7 @@ public class DirService {
                                     return child;
                                 })
                                 //After updating local values, save it back
-                                .flatMap(updatedLocalChild -> {
-                                    return dirRepo.save(updatedLocalChild);
-                                })
+                                .flatMap(updatedLocalChild -> dirRepo.save(updatedLocalChild))
                                 //Convert the flux to mono
                                 .collectList()
                                 .map(entityDirs -> {
@@ -323,9 +310,7 @@ public class DirService {
                                     return child;
                                 })
                                 //After updating local values save it to db
-                                .flatMap(updatedLocalChild -> {
-                                    return dirRepo.save(updatedLocalChild);
-                                })
+                                .flatMap(updatedLocalChild -> dirRepo.save(updatedLocalChild))
                                 //Convert flux to mono
                                 .collectList()
                                 .map(entityDirs -> {
@@ -376,5 +361,31 @@ public class DirService {
                                     .then(Mono.just(true));
                         }
                 );
+    }
+
+    public Mono<List<EntityDir>> getDirs(String userID, String parentDirID) {
+        /*
+        1. Check if its has parentID or not
+        2. If not we simply get root dir list from connector and get dirs based on the list and return it
+        3. If it has root dir we access the dir and then get its children list and return it
+         */
+        if (parentDirID == null || parentDirID.isEmpty())
+            return connectorRepo.findById(userID)
+                    .flatMapMany(conn -> {
+                        List<String> dirs = conn.getRootDirs();
+                        return Flux.fromIterable(dirs);
+                    })
+                    .flatMap(dirIDs -> dirRepo.findById(dirIDs))
+                    .collectList();
+
+        return dirRepo.findById(parentDirID)
+                .flatMapMany(rootDir -> {
+                    if (!rootDir.getCreatorID().equalsIgnoreCase(userID))
+                        return Mono.error(new ResponseException("Creator ID do not match", 401));
+                    var dirs = rootDir.getChildren();
+                    return Flux.fromIterable(dirs);
+                })
+                .flatMap(dirId -> dirRepo.findById(dirId))
+                .collectList();
     }
 }
