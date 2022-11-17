@@ -15,9 +15,12 @@ class BaseResponseModel {
   static BaseResponseModel convertResponseToBaseResponse(Response response) {
     int statusCode = response.statusCode;
     Map parsedBody = jsonDecode(response.body);
-    String msg = parsedBody['msg'];
-    dynamic data = parsedBody['data'];
-
-    return BaseResponseModel(msg: msg, data: data, statusCode: statusCode);
+    if (!parsedBody.containsKey('msg') || !parsedBody.containsKey('data')) {
+      throw Exception("Can't Parse");
+    } else {
+      String msg = parsedBody['msg'];
+      dynamic data = parsedBody['data'];
+      return BaseResponseModel(msg: msg, data: data, statusCode: statusCode);
+    }
   }
 }

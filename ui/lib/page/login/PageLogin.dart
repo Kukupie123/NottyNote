@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:ui/page/Home/PageHome.dart';
 import 'package:ui/provider/ServiceProvider.dart';
 import 'package:ui/provider/UserProvider.dart';
 
@@ -93,7 +94,7 @@ class _PageLoginState extends State<PageLogin> {
       var token = await serviceProvider.userService
           .login(emailController.text, passwordController.text);
       userProvider.setToken(token);
-      _goToHome(token);
+      await userProvider.validateToken();
     } on Exception catch (e) {
       loginStatusStreamController.add(e.toString());
     }
@@ -122,14 +123,5 @@ class _PageLoginState extends State<PageLogin> {
     } on Exception catch (e) {
       loginStatusStreamController.add(e.toString());
     }
-  }
-
-  void _goToHome(String token) {
-    Navigator.pushAndRemoveUntil(
-        context,
-        CupertinoPageRoute(
-          builder: (context) => Text("Home Page with token $token"),
-        ),
-        (route) => false);
   }
 }

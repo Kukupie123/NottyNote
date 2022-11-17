@@ -14,60 +14,45 @@ class PageHome extends StatefulWidget {
   State<PageHome> createState() => _PageHomeState();
 }
 
-class _PageHomeState extends State<PageHome>
-    with SingleTickerProviderStateMixin {
+class _PageHomeState extends State<PageHome> {
+  @override
+  void initState() {
+    super.initState();
+    //Validate token once we load in. If this fails we go to login page
+    Provider.of<UserProvider>(context, listen: false).validateToken();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Consumer<UserProvider>(builder: (context, value, child) {
-      //Validate if the values are correct
-      if (value.jwtToken != null && value.jwtToken!.isNotEmpty) {
-        return Scaffold(
-          backgroundColor: Colors.black26,
-          body: DefaultTabController(
-            length: 3,
-            child: Column(
+    return Scaffold(
+        body: DefaultTabController(
+      length: 3,
+      child: Column(
+        children: [
+          TabBar(
+            tabs: [
+              Text("Directory"),
+              Text("Notty Note"),
+              Text("Notty Layout"),
+            ],
+          ),
+          Container(
+            height: MediaQuery.of(context).size.height * 0.9,
+            child: TabBarView(
               children: [
-                TabBar(
-                  tabs: [
-                    Text("Directory"),
-                    Text("Notty Note"),
-                    Text("Notty Layout"),
-                  ],
-                ),
-                Container(
-                  height: MediaQuery.of(context).size.height * 0.9,
-                  child: TabBarView(
-                    children: [
-                      PageDir(),
-                      Text("TEST"),
-                      Text("data"),
-                    ],
-                  ),
-                ),
-                TextButton(onPressed: logout, child: Text("LOGOUT"))
+                PageDir(),
+                Text("TEST"),
+                Text("data"),
               ],
             ),
           ),
-        );
-      }
-      pushToLogin();
-      return Scaffold(
-        body: Text("Invalid token returning to login screen"),
-      );
-    });
+          TextButton(onPressed: logout, child: Text("LOGOUT"))
+        ],
+      ),
+    ));
   }
 
   void logout() {
     Provider.of<UserProvider>(context, listen: false).logout();
-  }
-
-  Future<void> pushToLogin() async {
-    await Future.delayed(Duration(seconds: 1));
-    Navigator.pushAndRemoveUntil(
-        context,
-        CupertinoPageRoute(
-          builder: (context) => PageLogin(),
-        ),
-        (route) => false);
   }
 }

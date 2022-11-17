@@ -8,10 +8,45 @@ class DirService {
     String url = URLs.DIR_BASE_URL + URLs.DIR_GET_DIRS(parentID);
     var resp = await http.get(
       Uri.parse(url),
-      headers: {"Authorization": jwtToken},
+      headers: {"Authorization": "Bearer $jwtToken"},
     );
+
     var baseResp = BaseResponseModel.convertResponseToBaseResponse(resp);
-    print("${baseResp.data.runtimeType} is the type of baseResp");
-    return baseResp.data as List<DirModel>;
+
+    List<dynamic> rawDirs = baseResp
+        .data; //Its of type _JsonMap. I was trying to jsonDecode but it wasn't working and turns out its because its already a json map
+
+    print(baseResp.data.runtimeType);
+
+    List<DirModel> dirs = [];
+
+    for (dynamic s in rawDirs) {
+      //IMPORTANT : List<String> will not work. Be sure to store list as List<dynamic>. Then iterate over them and then cast them appropriately.
+      String id = s['id'];
+      String creatorID = s['creatorID'];
+      String name = s['name'];
+      String parentID = s['parent'];
+      List<dynamic> childrenIDs = s['children'];
+      List<dynamic> bookmarkIDs = s['bookmarks'];
+
+      List<String> castedChildren = [];
+      List<String> castedBookmarks = [];
+
+      for (dynamic s in childrenIDs) {
+        String a = s as String;
+        castedChildren.add(a);
+      }
+
+      for (dynamic s in bookmarkIDs) {
+        String a = s as String;
+        castedBookmarks.add(a);
+      }
+
+      var a = DirModel(
+          id, creatorID, name, parentID, castedChildren, castedBookmarks);
+      dirs.add(a);
+    }
+
+    return dirs;
   }
 }

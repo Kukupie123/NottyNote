@@ -17,7 +17,7 @@ class UserService {
     if (baseResp.statusCode != 200) {
       throw Exception(baseResp.msg);
     }
-    return baseResp.data as String;
+    return baseResp.data;
   }
 
   Future<bool> reg(String name, String email, String password) async {

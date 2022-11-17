@@ -6,6 +6,7 @@ class URLs {
 
   static const AUTH_LOGIN_URL = "/login";
   static const AUTH_REG_URL = "/reg";
+  static const AUTH_VAL_URL = "/validate";
 
   static DIR_GET_DIRS(String parentID) {
     return "/getChildren/" + parentID;

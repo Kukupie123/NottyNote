@@ -1,5 +1,7 @@
 // ignore_for_file: file_names
 
+
+
 class DirModel {
   final String id;
   final String creatorID;
@@ -10,4 +12,5 @@ class DirModel {
 
   DirModel(this.id, this.creatorID, this.name, this.parentID, this.childrenIDs,
       this.bookmarkIDs);
+
 }

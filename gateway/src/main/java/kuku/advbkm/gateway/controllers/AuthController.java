@@ -55,7 +55,8 @@ public class AuthController {
     }
 
     public @GetMapping("/validate")
-    Mono<ResponseEntity<Boolean>> val(@RequestHeader("Authorization") String authHeader) {
+    Mono<ResponseEntity<Boolean>> val() {
+        log.info("Validation endpoint hit");
         return Mono.just(ResponseEntity.ok(true));
     }
 

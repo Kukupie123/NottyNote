@@ -20,24 +20,57 @@ class _PageDirState extends State<PageDir> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          //Directory loader
-          FutureBuilder(
-            future: loadRootDirs(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.done) {
-                return ListView(
-                    children: dirs
-                        .map((e) =>
-                            TextButton(onPressed: () {}, child: Text(e.name)))
-                        .toList());
-              }
-              return const Text("Loading dirs");
-            },
-          )
-        ],
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.95,
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            //Directory loader
+            FutureBuilder(
+              future: loadRootDirs(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.done) {
+                  return Container(
+                    color: Colors.grey,
+                    height: MediaQuery.of(context).size.height * 0.5,
+                    child: ListView(
+                      children: dirs.map((e) {
+                        return Card(
+                          child: Column(
+                            children: [Text(e.name)],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  );
+                }
+                return const Text("Loading dirs");
+              },
+            ),
+            //Bookmarks loader
+            FutureBuilder(
+              future: loadRootDirs(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.done) {
+                  return Container(
+                    color: Colors.yellow,
+                    height: MediaQuery.of(context).size.height * 0.5,
+                    child: ListView(
+                      children: dirs.map((e) {
+                        return Card(
+                          child: Column(
+                            children: [Text(e.name)],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  );
+                }
+                return const Text("Loading Bookmarks");
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -49,7 +82,6 @@ class _PageDirState extends State<PageDir> {
 
     dirs = await serviceProvider.dirService
         .getUserDirs(userProvider.jwtToken!, "*");
-    return;
   }
 
   Future<void> loadDirBookmarks() async {}
