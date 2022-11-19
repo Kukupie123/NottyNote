@@ -3,7 +3,9 @@ package kuku.advbkm.gateway.service;
 
 import kuku.advbkm.gateway.models.DirectoryModel;
 import kuku.advbkm.gateway.models.ReqResp.ReqResp;
+import kuku.advbkm.gateway.models.ResponseExceptionModel;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -11,6 +13,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import util.urls.URLs;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -103,7 +106,7 @@ public class DbDirService {
                 });
     }
 
-    public Flux<ResponseEntity<ReqResp<DirectoryModel>>> getChildrenDirs(String parentID, String token) {
+    public Flux<ReqResp<DirectoryModel>> getChildrenDirs(String parentID, String token) {
         String userID = jwtService.getUserID(token);
         String url = URLs.DB_HOST(8000) + URLs.DIR_GET_CHILDREN(parentID);
 
@@ -113,10 +116,16 @@ public class DbDirService {
                 .header("Authorization", userID)
                 .exchangeToFlux(resp -> {
                     var body = resp.bodyToFlux(ReqResp.class);
-                    return body.map(reqResp -> {
-                        DirectoryModel castedData = (DirectoryModel) reqResp.getData();
-                        return ResponseEntity.status(resp.statusCode()).body(new ReqResp<>(castedData, reqResp.getMsg()));
+                    return body.flatMap(reqResp -> {
+                        if (resp.statusCode() != HttpStatus.OK) {
+                            log.info("Status is not 200");
+                            return Flux.error(new ResponseExceptionModel(reqResp.getMsg(), resp.rawStatusCode()));
+                        }
+                        LinkedHashMap data = (LinkedHashMap) reqResp.getData();
+                        var castedData = new DirectoryModel((String) data.get("id"), (String) data.get("creatorID"), (String) data.get("isPublic"), (String) data.get("name"), (String) data.get("parent"), (List<String>) data.get("children"), (List<String>) data.get("bookmarks"));
+                        return Flux.just(new ReqResp<>(castedData, reqResp.getMsg()));
                     });
+
                 });
     }
 

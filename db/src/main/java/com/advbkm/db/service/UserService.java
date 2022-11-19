@@ -2,6 +2,7 @@ package com.advbkm.db.service;
 
 
 import com.advbkm.db.models.entities.EntityUser;
+import com.advbkm.db.models.exception.ResponseException;
 import com.advbkm.db.repo.RepoUsers;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -9,11 +10,9 @@ import reactor.core.publisher.Mono;
 @Service
 public class UserService {
     private final RepoUsers userRepo;
-    private final EntityUser dummyBean;
 
-    public UserService(RepoUsers userRepo, EntityUser dummyBean) {
+    public UserService(RepoUsers userRepo) {
         this.userRepo = userRepo;
-        this.dummyBean = dummyBean;
     }
 
 
@@ -33,7 +32,7 @@ public class UserService {
 
         return userRepo.insert(new EntityUser(user.getEmail(), user.getPassword(), user.getName(), user.getType()))
                 .onErrorMap(err -> new Exception(err.getMessage()))
-                .defaultIfEmpty(dummyBean);
+                .switchIfEmpty(Mono.error(new ResponseException("Creating User failed", 500)));
 
 
     }

@@ -3,14 +3,13 @@ package kuku.advbkm.gateway.controllers;
 
 import kuku.advbkm.gateway.models.DirectoryModel;
 import kuku.advbkm.gateway.models.ReqResp.ReqResp;
+import kuku.advbkm.gateway.models.ResponseExceptionModel;
 import kuku.advbkm.gateway.service.DbDirService;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.util.List;
 
 @CrossOrigin(value = "**") //Allow all origin, all headers, All Http methods.
 @Log4j2
@@ -50,14 +49,20 @@ public class DirController {
     public @GetMapping("/{id}")
     Mono<ResponseEntity<ReqResp<DirectoryModel>>> getDir(@PathVariable String id, @RequestHeader("Authorization") String authHeader) {
         String token = authHeader.substring(7);
+
         return dbService.getDir(id, token);
     }
 
-    public @GetMapping("/getChildren/{parentID}")
-    Flux<ResponseEntity<ReqResp<DirectoryModel>>> getDirs(@PathVariable String parentID, @RequestHeader("Authorization") String authHeader) {
+    public @GetMapping(value = "/getChildren/{parentID}")
+    ResponseEntity<Flux<ReqResp<DirectoryModel>>> getDirs(@PathVariable String parentID, @RequestHeader("Authorization") String authHeader) {
         String jwtToken = authHeader.substring(7);
+
         log.info("Get childrenDirs with auth {} and parent ID {}", jwtToken, parentID);
-        return dbService.getChildrenDirs(parentID, jwtToken);
+
+        var a = dbService.getChildrenDirs(parentID, jwtToken);
+
+        return ResponseEntity.ok(a);
+
     }
 
 

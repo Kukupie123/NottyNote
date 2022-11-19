@@ -37,10 +37,7 @@ public class AuthController {
     @PostMapping("/reg")
     public Mono<ResponseEntity<ReqResp<Boolean>>> register(@RequestBody MongoUserDetails user) {
         return authService.reg(user.getEmail(), user.getPassword(), user.getName())
-                .onErrorResume(e -> {
-                    var f = (ResponseExceptionModel) e;
-                    return Mono.just(ResponseEntity.status(f.getStatusCode()).body(new ReqResp<>(null, f.getMessage())));
-                });
+                ;
     }
 
 
@@ -48,10 +45,7 @@ public class AuthController {
     public Mono<ResponseEntity<ReqResp<String>>> login(@RequestBody UserModel userLogin) {
         log.info("Logging endpoint {}", userLogin.toString());
         return authService.login(userLogin.getEmail(), userLogin.getPassword())
-                .onErrorResume(throwable -> {
-                    var throwableCasted = (ResponseExceptionModel) throwable;
-                    return Mono.just(ResponseEntity.status(throwableCasted.getStatusCode()).body(new ReqResp<>(null, throwableCasted.getMessage())));
-                });
+                ;
     }
 
     public @GetMapping("/validate")

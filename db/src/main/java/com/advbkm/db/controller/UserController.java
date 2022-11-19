@@ -15,13 +15,11 @@ public class UserController {
 
 
     @Qualifier("dummy_EntityUser")
-    final private EntityUser dummyBean;
 
     final private UserService userService;
 
-    public UserController(EntityUser dummyBean, UserService userService) {
+    public UserController(UserService userService) {
         this.userService = userService;
-        this.dummyBean = dummyBean;
     }
 
 

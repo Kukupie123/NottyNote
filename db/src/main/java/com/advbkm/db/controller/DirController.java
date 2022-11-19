@@ -10,9 +10,6 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.ArrayList;
-import java.util.List;
-
 @Log4j2
 @RestController
 @RequestMapping("/api/v1/db/dir")
@@ -31,12 +28,7 @@ public class DirController {
 
         return createdDir.map(
                 entityDir -> ResponseEntity.status(200).body(new ReqResp<>(entityDir, "Success"))
-        ).onErrorResume(throwable -> Mono.just(
-                ResponseEntity
-                        .status(((ResponseException) throwable).getStatusCode())
-                        .body(new ReqResp<>(null, throwable.getMessage()))
-
-        ));
+        );
     }
 
     public @GetMapping("/{dirID}")
@@ -49,25 +41,15 @@ public class DirController {
     Mono<ResponseEntity<ReqResp<Boolean>>> deleteDir(@PathVariable String id, @RequestHeader("Authorization") String userID) {
         log.info("Delete Dir endpoint Triggered with ID {} and user {}", id, userID);
         return dirService.deleteDir(id, userID)
-                .map(b -> ResponseEntity.ok().body(new ReqResp<>(b, "Success")))
-                .onErrorResume(
-                        throwable -> {
-                            log.info("Exception in delete endpoint {}", throwable.getMessage());
-                            return Mono.just(
-                                    ResponseEntity
-                                            .status(((ResponseException) throwable).getStatusCode())
-                                            .body(new ReqResp<>(false, throwable.getMessage()))
-                            );
-                        }
-                );
+                .map(b -> ResponseEntity.ok().body(new ReqResp<>(b, "Success")));
     }
 
     public @GetMapping("/getChildren/{parentID}")
-    Flux<ResponseEntity<ReqResp<EntityDir>>> getDirs(@RequestHeader("Authorization") String userID, @PathVariable String parentID) {
+    ResponseEntity<Flux<ReqResp<EntityDir>>> getDirs(@RequestHeader("Authorization") String userID, @PathVariable String parentID) {
         log.info("Get Dirs endpoint triggered for user {} and parentID {}", userID, parentID);
-        return dirService.getChildrenDirs(userID, parentID)
-                .map(entityDir -> ResponseEntity.ok(new ReqResp<>(entityDir, "")))
-                .onErrorResume(throwable -> Flux.just(ResponseEntity.internalServerError().body(new ReqResp<>(null, throwable.getMessage())))
-                );
+            var a = dirService.getChildrenDirs(userID, parentID)
+                    .map(entityDir -> new ReqResp<>(entityDir, ""));
+            return ResponseEntity.ok(a);
+
     }
 }

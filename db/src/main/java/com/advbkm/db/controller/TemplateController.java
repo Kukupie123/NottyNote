@@ -25,16 +25,13 @@ public class TemplateController {
     Mono<ResponseEntity<ReqResp<String>>> createTemplate(@RequestBody EntityTemplate template, @RequestHeader("Authorization") String userID) {
         return templateService.createTemplate(template, userID)
                 .map(s -> ResponseEntity.ok().body(new ReqResp<>(s, "Success")))
-                .onErrorResume(err -> Mono.just(ResponseEntity.status(500).body(new ReqResp<>(null, err.getMessage()))));
+                ;
     }
 
     public @DeleteMapping("/{id}")
     Mono<ResponseEntity<ReqResp<Boolean>>> deleteTemplate(@PathVariable String id, @RequestHeader("Authorization") String userID) {
         return templateService.deleteTemplate(id, userID)
                 .map(b -> ResponseEntity.ok(new ReqResp<>(b, "Success")))
-                .onErrorResume(throwable -> {
-                    var err = (ResponseException) throwable;
-                    return Mono.just(ResponseEntity.status(err.getStatusCode()).body(new ReqResp<>(false, err.getMessage())));
-                });
+                ;
     }
 }

@@ -400,7 +400,7 @@ public class DirService {
                     .flatMap(dirIDs -> dirRepo.findById(dirIDs))
                     ;
 
-        return dirRepo.findById(parentDirID)
+        return dirRepo.findById(parentDirID).switchIfEmpty(Mono.error(new ResponseException("Parent not found", 404)))
                 .flatMapMany(rootDir -> {
                     if (!rootDir.getCreatorID().equalsIgnoreCase(userID))
                         return Mono.error(new ResponseException("Creator ID do not match", 401));
