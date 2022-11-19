@@ -14,6 +14,7 @@ import com.advbkm.db.repo.RepoTemplate;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
@@ -312,5 +313,36 @@ public class BookmarkService {
                 ;
     }
 
+    public Mono<EntityBookmark> getBookmark(String id, String userID) {
+        return repoBookmark.findById(id).switchIfEmpty(Mono.error(new ResponseException("Bookmark not found", 404)))
+                .flatMap(bookmark -> {
+                    if (!bookmark.getCreatorID().equalsIgnoreCase(userID) && !bookmark.isPublic())
+                        return Mono.error(new ResponseException("Access violation", 401));
+                    return Mono.just(bookmark);
+                });
+    }
+
+    public Flux<EntityBookmark> getBookmarksFromDir(String dirID, String userID) {
+        /*
+        1. Get dir and validate the creator ID
+        2. Get the bookmarks ID list from it
+        3. Iterate the bookmark IDs and return them
+         */
+
+        return repoDir.findById(dirID).switchIfEmpty(Mono.error(new ResponseException("Directory not found", 404)))
+                //Validate creatorID
+                .flatMap(dir -> {
+                    if (!dir.getCreatorID().equalsIgnoreCase(userID))
+                        return Mono.error(new ResponseException("No access to directory", 401));
+                    return Mono.just(dir);
+                })
+                //Get bookmarks list from dir
+                .flatMapMany(dir -> {
+                    List<String> bookmarkIDs = dir.getBookmarks();
+                    return Flux.fromIterable(bookmarkIDs);
+                })
+                //Get bookmarks
+                .flatMap(bookmarkID -> repoBookmark.findById(bookmarkID));
+    }
 }
 

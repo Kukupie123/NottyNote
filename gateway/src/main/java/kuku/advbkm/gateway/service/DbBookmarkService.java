@@ -7,6 +7,7 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import util.urls.URLs;
 
@@ -40,10 +41,10 @@ public class DbBookmarkService {
     public Mono<ResponseEntity<ReqResp<Boolean>>> deleteBookmark(String id, String jwtToken) {
 
         String userID = jwtService.getUserID(jwtToken);
-        log.info("UserID extracted is {}",userID);
+        log.info("UserID extracted is {}", userID);
 
 
-        WebClient client = WebClient.create(URLs.DB_HOST(8000) + URLs.BKM_DELETE(id));
+        WebClient client = WebClient.create(URLs.DB_HOST(8000) + URLs.BKM_DELETE_GET(id));
 
         return client.delete().header("Authorization", userID)
                 .exchangeToMono(resp -> resp.bodyToMono(ReqResp.class)
@@ -52,5 +53,34 @@ public class DbBookmarkService {
                             String msg = body.getMsg();
                             return ResponseEntity.status(resp.rawStatusCode()).body(new ReqResp<>(data, msg));
                         }));
+    }
+
+    public Mono<ResponseEntity<ReqResp<BookmarkModel>>> getBookmark(String id, String jwtToken) {
+        String userID = jwtService.getUserID(jwtToken);
+
+        WebClient client = WebClient.create(URLs.DB_HOST(8000) + URLs.BKM_DELETE_GET(id));
+
+        return client.get().header("Authorization", userID)
+                .exchangeToMono(resp -> resp.bodyToMono(ReqResp.class)
+                        .map(body -> {
+                            BookmarkModel data = (BookmarkModel) body.getData();
+                            String msg = body.getMsg();
+                            return ResponseEntity.status(resp.rawStatusCode()).body(new ReqResp<>(data, msg));
+                        }));
+    }
+
+    public Flux<ResponseEntity<ReqResp<BookmarkModel>>> getBookmarkFromDir(String dirID, String jwtToken) {
+        String userID = jwtService.getUserID(jwtToken);
+        WebClient client = WebClient.create(URLs.DB_HOST(8000) + URLs.BKMS_FROM_DIR(dirID));
+        return client.get().header("Authorization", userID)
+                .exchangeToFlux(resp -> {
+                    return resp.bodyToFlux(ReqResp.class)
+                            .map(reqResp -> {
+                                BookmarkModel data = (BookmarkModel) reqResp.getData();
+                                String msg = reqResp.getMsg();
+                                return ResponseEntity.status(resp.rawStatusCode()).body(new ReqResp<>(data, msg));
+                            });
+                })
+                ;
     }
 }

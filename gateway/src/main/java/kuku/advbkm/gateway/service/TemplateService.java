@@ -28,7 +28,7 @@ public class TemplateService {
     }
 
     public Mono<ResponseEntity<ReqResp<Boolean>>> deleteTemplate(String templateID, String userID) {
-        WebClient client = WebClient.create(URLs.DB_HOST(8000) + URLs.TEMP_DELETE(templateID));
+        WebClient client = WebClient.create(URLs.DB_HOST(8000) + URLs.TEMP_DELETE_GET(templateID));
         return client.delete().header("Authorization", userID)
                 .exchangeToMono(resp -> resp.bodyToMono(ReqResp.class)
                          .map(body -> {

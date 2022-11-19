@@ -7,6 +7,7 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import util.urls.URLs;
 
@@ -44,17 +45,13 @@ public class DbDirService {
 
                     Mono<ReqResp> body = resp.bodyToMono(ReqResp.class);
 
-                    Mono<ResponseEntity<ReqResp<String>>> transformedBody = body.map(b -> {
+                    return body.map(b -> {
                         String msg = b.getMsg();
                         String dirID = (String) b.getData();
                         return ResponseEntity.status(resp.rawStatusCode()).body(new ReqResp<>(dirID, msg));
                     });
 
-                    return transformedBody;
-
-
                 });
-
 
     }
 
@@ -66,7 +63,7 @@ public class DbDirService {
      * @return response entity
      */
     public Mono<ResponseEntity<ReqResp<Boolean>>> deleteDir(String dirID, String jwtToken) {
-        String url = URLs.DB_HOST(8000) + URLs.DIR_DELETE(dirID);
+        String url = URLs.DB_HOST(8000) + URLs.DIR_GET_DELETE(dirID);
         log.info("Delete Dir service function called on URL {}", url);
         String userID = jwtService.getUserID(jwtToken);
         WebClient client = WebClient.create(url);
@@ -90,7 +87,7 @@ public class DbDirService {
     }
 
     public Mono<ResponseEntity<ReqResp<DirectoryModel>>> getDir(String dirID, String token) {
-        String url = URLs.DB_HOST(8000) + URLs.DIR_GET(dirID);
+        String url = URLs.DB_HOST(8000) + URLs.DIR_DELETE_GET(dirID);
         String userID = jwtService.getUserID(token);
 
         WebClient client = WebClient.create(url);
@@ -106,7 +103,7 @@ public class DbDirService {
                 });
     }
 
-    public Mono<ResponseEntity<ReqResp<List<DirectoryModel>>>> getChildrenDirs(String parentID, String token) {
+    public Flux<ResponseEntity<ReqResp<DirectoryModel>>> getChildrenDirs(String parentID, String token) {
         String userID = jwtService.getUserID(token);
         String url = URLs.DB_HOST(8000) + URLs.DIR_GET_CHILDREN(parentID);
 
@@ -114,10 +111,10 @@ public class DbDirService {
         return client
                 .get()
                 .header("Authorization", userID)
-                .exchangeToMono(resp -> {
-                    var body = resp.bodyToMono(ReqResp.class);
+                .exchangeToFlux(resp -> {
+                    var body = resp.bodyToFlux(ReqResp.class);
                     return body.map(reqResp -> {
-                        List<DirectoryModel> castedData = (List<DirectoryModel>) reqResp.getData();
+                        DirectoryModel castedData = (DirectoryModel) reqResp.getData();
                         return ResponseEntity.status(resp.statusCode()).body(new ReqResp<>(castedData, reqResp.getMsg()));
                     });
                 });

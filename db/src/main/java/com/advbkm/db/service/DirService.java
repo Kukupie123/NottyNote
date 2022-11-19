@@ -374,14 +374,21 @@ public class DirService {
                 ;
     }
 
-    public Mono<List<EntityDir>> getChildrenDirs(String userID, String parentDirID) {
+    /***
+     * Returns Dirs that are children of ParentDirID.
+     * If ParentDirID is "*" Then it will return the Root Dirs of the userID
+     * @param userID UserID
+     * @param parentDirID DirID of the parent directory
+     * @return List of Directories
+     */
+    public Flux<EntityDir> getChildrenDirs(String userID, String parentDirID) {
         /*
         1. Check if its has parentID or not
         2. If not we simply get root dir list from connector and get dirs based on the list and return it
         3. If it has root dir we access the dir and then get its children list and return it
          */
         if (parentDirID == null || parentDirID.isEmpty()) {
-            return Mono.error(new ResponseException("Parent ID is invalid", 403));
+            return Flux.error(new ResponseException("Parent ID is invalid", 403));
         }
 
         if (parentDirID.equalsIgnoreCase("*"))
@@ -391,7 +398,7 @@ public class DirService {
                         return Flux.fromIterable(dirs);
                     })
                     .flatMap(dirIDs -> dirRepo.findById(dirIDs))
-                    .collectList();
+                    ;
 
         return dirRepo.findById(parentDirID)
                 .flatMapMany(rootDir -> {
@@ -400,7 +407,6 @@ public class DirService {
                     var dirs = rootDir.getChildren();
                     return Flux.fromIterable(dirs);
                 })
-                .flatMap(dirId -> dirRepo.findById(dirId))
-                .collectList();
+                .flatMap(dirId -> dirRepo.findById(dirId));
     }
 }

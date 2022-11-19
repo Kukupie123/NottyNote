@@ -7,6 +7,7 @@ import com.advbkm.db.service.DirService;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
@@ -62,19 +63,11 @@ public class DirController {
     }
 
     public @GetMapping("/getChildren/{parentID}")
-    Mono<ResponseEntity<ReqResp<List<EntityDir>>>> getDirs(@RequestHeader("Authorization") String userID, @PathVariable String parentID) {
+    Flux<ResponseEntity<ReqResp<EntityDir>>> getDirs(@RequestHeader("Authorization") String userID, @PathVariable String parentID) {
         log.info("Get Dirs endpoint triggered for user {} and parentID {}", userID, parentID);
         return dirService.getChildrenDirs(userID, parentID)
-                .map(e -> ResponseEntity.ok().body(new ReqResp<>(e, "")))
-                .onErrorResume(
-                        throwable -> {
-                            log.info("Exception in delete endpoint {}", throwable.getMessage());
-                            return Mono.just(
-                                    ResponseEntity
-                                            .status(((ResponseException) throwable).getStatusCode())
-                                            .body(new ReqResp<>(new ArrayList<>(), throwable.getMessage()))
-                            );
-                        }
+                .map(entityDir -> ResponseEntity.ok(new ReqResp<>(entityDir, "")))
+                .onErrorResume(throwable -> Flux.just(ResponseEntity.internalServerError().body(new ReqResp<>(null, throwable.getMessage())))
                 );
     }
 }

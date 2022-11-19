@@ -7,6 +7,7 @@ import kuku.advbkm.gateway.service.DbDirService;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
@@ -53,7 +54,7 @@ public class DirController {
     }
 
     public @GetMapping("/getChildren/{parentID}")
-    Mono<ResponseEntity<ReqResp<List<DirectoryModel>>>> getDirs(@PathVariable String parentID, @RequestHeader("Authorization") String authHeader) {
+    Flux<ResponseEntity<ReqResp<DirectoryModel>>> getDirs(@PathVariable String parentID, @RequestHeader("Authorization") String authHeader) {
         String jwtToken = authHeader.substring(7);
         log.info("Get childrenDirs with auth {} and parent ID {}", jwtToken, parentID);
         return dbService.getChildrenDirs(parentID, jwtToken);
