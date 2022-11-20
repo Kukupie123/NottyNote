@@ -11,6 +11,9 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import util.urls.URLs;
 
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+
 @Service
 @Log4j2
 public class DbBookmarkService {
@@ -69,16 +72,19 @@ public class DbBookmarkService {
                         }));
     }
 
-    public Flux<ResponseEntity<ReqResp<BookmarkModel>>> getBookmarkFromDir(String dirID, String jwtToken) {
+    public Flux<ReqResp<BookmarkModel>> getBookmarkFromDir(String dirID, String jwtToken) {
         String userID = jwtService.getUserID(jwtToken);
+        log.info("User ID is {}", userID);
         WebClient client = WebClient.create(URLs.DB_HOST(8000) + URLs.BKMS_FROM_DIR(dirID));
         return client.get().header("Authorization", userID)
                 .exchangeToFlux(resp -> {
                     return resp.bodyToFlux(ReqResp.class)
                             .map(reqResp -> {
-                                BookmarkModel data = (BookmarkModel) reqResp.getData();
+                                LinkedHashMap rawData = (LinkedHashMap) reqResp.getData();
+                                log.info(rawData.toString());
+                                BookmarkModel data = new BookmarkModel((String) rawData.get("id"), (String) rawData.get("creatorID"), (String) rawData.get("templateID"), (String) rawData.get("dirID"), (String) rawData.get("name"), (Boolean) rawData.get("public"), (HashMap<String, Object>) rawData.get("data"));
                                 String msg = reqResp.getMsg();
-                                return ResponseEntity.status(resp.rawStatusCode()).body(new ReqResp<>(data, msg));
+                                return new ReqResp<>(data, msg);
                             });
                 })
                 ;

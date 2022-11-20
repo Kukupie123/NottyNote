@@ -20,7 +20,7 @@ class _PageDirState extends State<PageDir> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       height: MediaQuery.of(context).size.height * 0.95,
       child: SingleChildScrollView(
         child: Column(

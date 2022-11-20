@@ -332,8 +332,11 @@ public class BookmarkService {
         return repoDir.findById(dirID).switchIfEmpty(Mono.error(new ResponseException("Directory not found", 404)))
                 //Validate creatorID
                 .flatMap(dir -> {
-                    if (!dir.getCreatorID().equalsIgnoreCase(userID))
+                    if (!dir.getCreatorID().equalsIgnoreCase(userID)) {
+                        log.info("CreatorID {} do not match requester {}", dir.getCreatorID(), userID);
                         return Mono.error(new ResponseException("No access to directory", 401));
+                    }
+
                     return Mono.just(dir);
                 })
                 //Get bookmarks list from dir

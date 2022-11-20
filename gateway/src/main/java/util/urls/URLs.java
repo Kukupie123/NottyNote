@@ -14,7 +14,7 @@ public class URLs {
     public static final String BKM_CREATE = "bookmark/create";
 
     public static String BKMS_FROM_DIR(String dirID) {
-        return "dir/" + dirID;
+        return "bookmark/dir/" + dirID;
     }
 
     public static String DIR_GET_DELETE(String id) {

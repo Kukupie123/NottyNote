@@ -59,7 +59,11 @@ public class DirController {
 
         log.info("Get childrenDirs with auth {} and parent ID {}", jwtToken, parentID);
 
-        var a = dbService.getChildrenDirs(parentID, jwtToken);
+        var a = dbService.getChildrenDirs(parentID, jwtToken).map(directoryModelReqResp -> {
+            log.info("Returning {}",directoryModelReqResp.getData());
+            return directoryModelReqResp;
+        });
+
 
         return ResponseEntity.ok(a);
 

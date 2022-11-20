@@ -1,6 +1,7 @@
+import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 import 'package:ui/models/DirectoryModel.dart';
-import 'package:ui/models/Response/BaseResponseModel.dart';
 import 'package:ui/utils/Utils.dart';
 
 class DirService {
@@ -11,12 +12,15 @@ class DirService {
       headers: {"Authorization": "Bearer $jwtToken"},
     );
 
-    var baseResp = BaseResponseModel.convertResponseToBaseResponse(resp);
+    //var baseResp = BaseResponseModel.convertResponseToBaseResponse(resp);
+    List<dynamic> data = jsonDecode(resp
+        .body); //List<dynamic>  [{data: "", msg: ""}]. Probably because I return a flux
 
-    List<dynamic> rawDirs = baseResp
-        .data; //Its of type _JsonMap. I was trying to jsonDecode but it wasn't working and turns out its because its already a json map
+    List<dynamic> rawDirs = [];
 
-    print(baseResp.data.runtimeType);
+    for (dynamic d in data) {
+      rawDirs.add(d['data']);
+    }
 
     List<DirModel> dirs = [];
 

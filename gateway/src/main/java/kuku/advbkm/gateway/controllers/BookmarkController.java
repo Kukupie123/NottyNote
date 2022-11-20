@@ -41,8 +41,9 @@ public class BookmarkController {
     }
 
     @GetMapping("/dir/{dirID}")
-    public Flux<ResponseEntity<ReqResp<BookmarkModel>>> getBookmarksForDir(@PathVariable String dirID,@RequestHeader("Authorization") String token){
+    public ResponseEntity<Flux<ReqResp<BookmarkModel>>> getBookmarksForDir(@PathVariable String dirID, @RequestHeader("Authorization") String token) {
         String jwtToken = token.substring(7);
-        return bookmarkService.getBookmarkFromDir(dirID,jwtToken);
+        var a = bookmarkService.getBookmarkFromDir(dirID, jwtToken);
+        return ResponseEntity.ok(a);
     }
 }
