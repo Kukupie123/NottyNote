@@ -99,7 +99,7 @@ class _PageDirState extends State<PageDir> {
 
     var userProvider = Provider.of<UserProvider>(context, listen: false);
 
-    bookmarks = await serviceProvider.getBookmarkFromDirID(
+    bookmarks = await serviceProvider.getBookmarkListFromDirID(
         userProvider.jwtToken!, currentDirID);
   }
 }

@@ -111,7 +111,21 @@ class ServiceProvider {
   }
 
   //BOOKMARK SERVICE---------------------
-  Future<List<BookmarkModel>> getBookmarkFromDirID(
+  BookmarkModel _createBookmarkFromRespBody(String respBody) {
+    var data = jsonDecode(respBody)['data'];
+    return BookmarkModel(data['id'], data['creatorID'], data['templateID'],
+        data['dirID'], data['name'], data['data']);
+  }
+
+  Future<BookmarkModel> getBookmarkByID(
+      String jwtToken, String bookmarkID) async {
+    String url = "http://localhost:8080/api/v1/gate/bookmark/$bookmarkID";
+    var resp = await http
+        .get(Uri.parse(url), headers: {"Authorization": "Bearer  $jwtToken"});
+    return _createBookmarkFromRespBody(resp.body);
+  }
+
+  Future<List<BookmarkModel>> getBookmarkListFromDirID(
       String jwtToken, String dirID) async {
     String url = "http://localhost:8080/api/v1/gate/bookmark/dir/$dirID";
     var resp = await http
@@ -121,22 +135,18 @@ class ServiceProvider {
       throw Exception("Status code ${resp.statusCode}");
     }
 
-    List<dynamic> body =
-        jsonDecode(resp.body); //Body is going to return an array of {data,msg}
-    List<dynamic> rawData = [];
     List<BookmarkModel> bookmarks = [];
-    for (dynamic d in body) {
-      rawData.add(d['data']);
-    }
-    print(rawData.toString());
+    List<dynamic> dataList =
+        jsonDecode(resp.body); //Body is going to return an array of {data,msg}
 
-    for (dynamic data in rawData) {
-      bookmarks.add(BookmarkModel(data['id'], data['creatorID'],
-          data['templateID'], data['dirID'], data['name'], data['data']));
+    List<String> dataListString = [];
+    for (dynamic d in dataList) {
+      dataListString.add(jsonEncode(d));
     }
 
-    print("----------------------");
-    print(bookmarks.toString());
+    for (String data in dataListString) {
+      bookmarks.add(_createBookmarkFromRespBody(data));
+    }
     return bookmarks;
   }
 
