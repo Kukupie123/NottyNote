@@ -88,6 +88,8 @@ class _PageDirState extends State<PageDir> {
 
     var userProvider = Provider.of<UserProvider>(context, listen: false);
 
+    serviceProvider.getTemplateByID(userProvider.jwtToken!, "63764aaf2f397909b7526a18");
+
     dirs = await serviceProvider.getChildrenDirs(
         userProvider.jwtToken!, currentDirID);
   }
