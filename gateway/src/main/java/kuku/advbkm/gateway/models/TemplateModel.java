@@ -3,6 +3,7 @@ package kuku.advbkm.gateway.models;
 import lombok.*;
 
 import java.util.HashMap;
+import java.util.List;
 
 
 @Getter
@@ -11,7 +12,9 @@ import java.util.HashMap;
 @NoArgsConstructor
 @ToString
 public class TemplateModel {
+    private String id;
     private String name;
     private String creatorID;
-    private HashMap<String, TemplateField> struct;
+    private List<String> bookmarks;
+    private HashMap<String, TemplateField> struct; //name of field  : fieldStruct
 }

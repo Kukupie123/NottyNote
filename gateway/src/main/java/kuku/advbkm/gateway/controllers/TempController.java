@@ -3,7 +3,6 @@ package kuku.advbkm.gateway.controllers;
 
 import kuku.advbkm.gateway.models.ReqResp.ReqResp;
 import kuku.advbkm.gateway.models.TemplateModel;
-import kuku.advbkm.gateway.service.JWTService;
 import kuku.advbkm.gateway.service.TemplateService;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.ResponseEntity;
@@ -16,11 +15,9 @@ import reactor.core.publisher.Mono;
 @RequestMapping("/api/v1/gate/temp/")
 public class TempController {
 
-    private final JWTService jwtService;
     private final TemplateService templateService;
 
-    public TempController(JWTService jwtService, TemplateService templateService) {
-        this.jwtService = jwtService;
+    public TempController(TemplateService templateService) {
         this.templateService = templateService;
     }
 
@@ -28,16 +25,21 @@ public class TempController {
     public Mono<ResponseEntity<ReqResp<String>>> createTemplate(@RequestBody TemplateModel template, @RequestHeader("Authorization") String auth) {
         log.info("Create Template with struct : {}", template);
         String jwtToken = auth.substring(7);
-        String userName = jwtService.getUserID(jwtToken);
-        return templateService.createTemplate(template, userName)
+        return templateService.createTemplate(template, jwtToken)
                 ;
+    }
+
+    @GetMapping("/{id}")
+    public Mono<ResponseEntity<ReqResp<TemplateModel>>> getTemplate(@PathVariable String id, @RequestHeader("Authorization") String auth) {
+        log.info("Get Template with id {}", id);
+        String jwtToken = auth.substring(7);
+        return templateService.getTemplate(id, jwtToken);
     }
 
     public @DeleteMapping("/{id}")
     Mono<ResponseEntity<ReqResp<Boolean>>> deleteTemp(@PathVariable String id, @RequestHeader("Authorization") String auth) {
         String jwtToken = auth.substring(7);
-        String userName = jwtService.getUserID(jwtToken);
-        return templateService.deleteTemplate(id, userName)
+        return templateService.deleteTemplate(id, jwtToken)
                 ;
     }
 }

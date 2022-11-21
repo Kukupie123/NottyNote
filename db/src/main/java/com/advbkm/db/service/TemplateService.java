@@ -80,6 +80,21 @@ public class TemplateService {
 
     }
 
+    public Mono<EntityTemplate> getTemplate(String templateID, String userID) {
+        /*
+        1. Get the template,
+        2. Return 404 if it doesn't exist
+        3. Validate userID and creator ID
+        4. Return
+         */
+        return repoTemp.findById(templateID).switchIfEmpty(Mono.error(new ResponseException("Template not found", 404)))
+                .flatMap(template -> {
+                    if (!template.getCreatorID().equalsIgnoreCase(userID))
+                        return Mono.error(new ResponseException("CreatorID and requester do not match", 401));
+                    return Mono.just(template);
+                });
+    }
+
 
     public Mono<Boolean> deleteTemplate(String templateID, String userID) {
         /*

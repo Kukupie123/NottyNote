@@ -2,7 +2,6 @@ package com.advbkm.db.controller;
 
 
 import com.advbkm.db.models.entities.TemplateEntity.EntityTemplate;
-import com.advbkm.db.models.exception.ResponseException;
 import com.advbkm.db.models.reqresp.ReqResp;
 import com.advbkm.db.service.TemplateService;
 import lombok.extern.log4j.Log4j2;
@@ -26,6 +25,12 @@ public class TemplateController {
         return templateService.createTemplate(template, userID)
                 .map(s -> ResponseEntity.ok().body(new ReqResp<>(s, "Success")))
                 ;
+    }
+
+    public @GetMapping("/{id}")
+    Mono<ResponseEntity<ReqResp<EntityTemplate>>> getTemplate(@PathVariable String id, @RequestHeader("Authorization") String userID) {
+        return templateService.getTemplate(id, userID)
+                .map(b -> ResponseEntity.ok(new ReqResp<>(b, "Success")));
     }
 
     public @DeleteMapping("/{id}")

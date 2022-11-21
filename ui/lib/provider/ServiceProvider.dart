@@ -10,6 +10,7 @@ import '../models/Response/BaseResponseModel.dart';
 import '../utils/Utils.dart';
 
 class ServiceProvider {
+  //AUTH SERVICE------------------------
   Future<String> login(String email, String password) async {
     String url = URLs.AUTH_BASE_URL + URLs.AUTH_LOGIN_URL;
 
@@ -39,6 +40,8 @@ class ServiceProvider {
     }
     return baseResp.data as bool;
   }
+
+  //DIR SERVICE-------------------------------
 
   /// Get list of DirModel who are the children of parentID
   Future<List<DirModel>> getChildrenDirs(
@@ -91,6 +94,8 @@ class ServiceProvider {
     return dirs;
   }
 
+
+  //BOOKMARK SERVICE---------------------
   Future<List<BookmarkModel>> getBookmarkFromDirID(
       String jwtToken, String dirID) async {
     String url = "http://localhost:8080/api/v1/gate/bookmark/dir/$dirID";
@@ -117,4 +122,7 @@ class ServiceProvider {
     print(bookmarks.toString());
     return bookmarks;
   }
+
+  //TEMPLATE SERVICE-------------
+
 }
