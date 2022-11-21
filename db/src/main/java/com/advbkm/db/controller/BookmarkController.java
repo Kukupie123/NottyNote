@@ -22,6 +22,7 @@ public class BookmarkController {
 
     /**
      * Create a new bookmark
+     *
      * @return Bookmark ID of the newly created bookmark
      */
     @PostMapping("/create")
@@ -37,6 +38,7 @@ public class BookmarkController {
 
     /**
      * Delete the bookmark with the given ID
+     *
      * @return True if successful, false if something went wrong
      */
     @DeleteMapping("/{id}")
@@ -47,6 +49,7 @@ public class BookmarkController {
 
     /**
      * Get the bookmark with the given ID
+     *
      * @return Bookmark Entity as JSON
      */
     @GetMapping("/{id}")
@@ -58,6 +61,7 @@ public class BookmarkController {
 
     /**
      * Return an Array of Bookmarks that are inside the dirID
+     *
      * @return [{data : "bookmark", msg : ""}]
      */
     @GetMapping("/dir/{dirID}")
@@ -67,3 +71,6 @@ public class BookmarkController {
         return ResponseEntity.ok(a);
     }
 }
+
+
+//TODO: Edit/Update bookmark. Just Update the values as long as the template struct and data match

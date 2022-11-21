@@ -3,7 +3,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ui/models/BookmarkModel.dart';
+import 'package:ui/models/BookmarkSolidModel.dart';
 import 'package:ui/models/DirectoryModel.dart';
+import 'package:ui/models/TemplateModel.dart';
+import 'package:ui/page/ViewBookmark/PageViewBookmark.dart';
 import 'package:ui/provider/ServiceProvider.dart';
 import 'package:ui/provider/UserProvider.dart';
 
@@ -65,11 +68,24 @@ class _PageDirState extends State<PageDir> {
                     height: MediaQuery.of(context).size.height * 0.5,
                     child: ListView(
                       children: bookmarks.map((e) {
-                        return Card(
-                          child: Column(
-                            children: [Text(e.name)],
-                          ),
-                        );
+                        return GestureDetector(
+                            onTap: () async {
+                              TemplateModel template =
+                                  await _getTemplate(e.templateID);
+                              var bookmarkSolid =
+                                  BookmarkSolidModel(template, e);
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => PageViewBookmark(
+                                        bookmark: bookmarkSolid),
+                                  ));
+                            },
+                            child: Card(
+                              child: Column(
+                                children: [Text(e.name)],
+                              ),
+                            ));
                       }).toList(),
                     ),
                   );
@@ -83,12 +99,22 @@ class _PageDirState extends State<PageDir> {
     );
   }
 
+  Future<TemplateModel> _getTemplate(String templateID) async {
+    var serviceProvider = Provider.of<ServiceProvider>(context, listen: false);
+
+    var userProvider = Provider.of<UserProvider>(context, listen: false);
+
+    return await serviceProvider.getTemplateByID(
+        userProvider.jwtToken!, templateID);
+  }
+
   Future<void> loadRootDirs() async {
     var serviceProvider = Provider.of<ServiceProvider>(context, listen: false);
 
     var userProvider = Provider.of<UserProvider>(context, listen: false);
 
-    serviceProvider.getTemplateByID(userProvider.jwtToken!, "63764aaf2f397909b7526a18");
+    serviceProvider.getTemplateByID(
+        userProvider.jwtToken!, "63764aaf2f397909b7526a18");
 
     dirs = await serviceProvider.getChildrenDirs(
         userProvider.jwtToken!, currentDirID);

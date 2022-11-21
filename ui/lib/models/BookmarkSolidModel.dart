@@ -4,13 +4,19 @@ import 'package:ui/models/BookmarkSolidField.dart';
 import 'package:ui/models/TemplateModel.dart';
 
 class BookmarkSolidModel extends BookmarkModel {
-  late final Map<String, BookmarkSolidField> solidData;
+  final Map<String, BookmarkSolidField> solidData = {};
 
-  BookmarkSolidModel(super.id, super.creatorID, super.templateID, super.dirID,
-      super.name, super.data,
-      {required TemplateModel template}) {
+  BookmarkSolidModel(TemplateModel templateModel, BookmarkModel bookmarkModel)
+      : super(
+            bookmarkModel.id,
+            bookmarkModel.creatorID,
+            bookmarkModel.templateID,
+            bookmarkModel.dirID,
+            bookmarkModel.name,
+            bookmarkModel.data) {
     //Iterate over the template struct
-    template.struct.forEach((fieldName, templateField) {
+    templateModel.struct.forEach((fieldName, templateField) {
+      print("fieldName is $fieldName and type is ${templateField.fieldType}");
       var value = data[fieldName];
       String type = templateField.fieldType;
 
