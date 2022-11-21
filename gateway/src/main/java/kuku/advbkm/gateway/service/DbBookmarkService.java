@@ -81,7 +81,7 @@ public class DbBookmarkService {
                     return resp.bodyToFlux(ReqResp.class)
                             .map(reqResp -> {
                                 LinkedHashMap rawData = (LinkedHashMap) reqResp.getData();
-                                log.info(rawData.toString());
+                                if (rawData == null) return new ReqResp<>(null, "No bookmark found");
                                 BookmarkModel data = new BookmarkModel((String) rawData.get("id"), (String) rawData.get("creatorID"), (String) rawData.get("templateID"), (String) rawData.get("dirID"), (String) rawData.get("name"), (Boolean) rawData.get("public"), (HashMap<String, Object>) rawData.get("data"));
                                 String msg = reqResp.getMsg();
                                 return new ReqResp<>(data, msg);

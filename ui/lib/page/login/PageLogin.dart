@@ -2,10 +2,8 @@
 
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:ui/page/Home/PageHome.dart';
 import 'package:ui/provider/ServiceProvider.dart';
 import 'package:ui/provider/UserProvider.dart';
 
@@ -91,8 +89,8 @@ class _PageLoginState extends State<PageLogin> {
     loginStatusStreamController.add("Logging In.");
     try {
       var userProvider = Provider.of<UserProvider>(context, listen: false);
-      var token = await serviceProvider.userService
-          .login(emailController.text, passwordController.text);
+      var token = await serviceProvider.login(
+          emailController.text, passwordController.text);
       userProvider.setToken(token);
       await userProvider.validateToken();
     } on Exception catch (e) {
@@ -114,7 +112,7 @@ class _PageLoginState extends State<PageLogin> {
 
     loginStatusStreamController.add("Registering User");
     try {
-      var success = await serviceProvider.userService.reg(
+      var success = await serviceProvider.reg(
           nameController.text, emailController.text, passwordController.text);
       if (success)
         loginStatusStreamController.add("Registered Successfully");

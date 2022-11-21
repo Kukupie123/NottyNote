@@ -2,10 +2,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:ui/models/BookmarkModel.dart';
 import 'package:ui/models/DirectoryModel.dart';
 import 'package:ui/provider/ServiceProvider.dart';
 import 'package:ui/provider/UserProvider.dart';
-import 'package:ui/service/DirService.dart';
 
 class PageDir extends StatefulWidget {
   const PageDir({Key? key}) : super(key: key);
@@ -16,10 +16,12 @@ class PageDir extends StatefulWidget {
 
 class _PageDirState extends State<PageDir> {
   List<DirModel> dirs = [];
-  String currentDirID = "";
+  List<BookmarkModel> bookmarks = [];
+  String currentDirID = "*";
 
   @override
   Widget build(BuildContext context) {
+    print("Current dir is $currentDirID");
     return SizedBox(
       height: MediaQuery.of(context).size.height * 0.95,
       child: SingleChildScrollView(
@@ -35,11 +37,17 @@ class _PageDirState extends State<PageDir> {
                     height: MediaQuery.of(context).size.height * 0.5,
                     child: ListView(
                       children: dirs.map((e) {
-                        return Card(
-                          child: Column(
-                            children: [Text(e.name)],
-                          ),
-                        );
+                        return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                currentDirID = e.id;
+                              });
+                            },
+                            child: Card(
+                              child: Column(
+                                children: [Text(e.name)],
+                              ),
+                            ));
                       }).toList(),
                     ),
                   );
@@ -49,14 +57,14 @@ class _PageDirState extends State<PageDir> {
             ),
             //Bookmarks loader
             FutureBuilder(
-              future: loadRootDirs(),
+              future: loadDirBookmarks(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.done) {
                   return Container(
                     color: Colors.yellow,
                     height: MediaQuery.of(context).size.height * 0.5,
                     child: ListView(
-                      children: dirs.map((e) {
+                      children: bookmarks.map((e) {
                         return Card(
                           child: Column(
                             children: [Text(e.name)],
@@ -80,9 +88,16 @@ class _PageDirState extends State<PageDir> {
 
     var userProvider = Provider.of<UserProvider>(context, listen: false);
 
-    dirs = await serviceProvider.dirService
-        .getUserDirs(userProvider.jwtToken!, "*");
+    dirs = await serviceProvider.getChildrenDirs(
+        userProvider.jwtToken!, currentDirID);
   }
 
-  Future<void> loadDirBookmarks() async {}
+  Future<void> loadDirBookmarks() async {
+    var serviceProvider = Provider.of<ServiceProvider>(context, listen: false);
+
+    var userProvider = Provider.of<UserProvider>(context, listen: false);
+
+    bookmarks = await serviceProvider.getBookmarkFromDirID(
+        userProvider.jwtToken!, currentDirID);
+  }
 }

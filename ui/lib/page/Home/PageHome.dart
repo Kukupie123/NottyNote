@@ -30,6 +30,7 @@ class _PageHomeState extends State<PageHome> {
       child: Column(
         children: [
           TabBar(
+            labelColor: Colors.black26,
             tabs: [
               Text("Directory"),
               Text("Notty Note"),
