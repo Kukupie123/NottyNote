@@ -58,6 +58,7 @@ public class DbBookmarkService {
                         }));
     }
 
+
     public Mono<ResponseEntity<ReqResp<BookmarkModel>>> getBookmark(String id, String jwtToken) {
         String userID = jwtService.getUserID(jwtToken);
 
@@ -76,6 +77,39 @@ public class DbBookmarkService {
         String userID = jwtService.getUserID(jwtToken);
         log.info("User ID is {}", userID);
         WebClient client = WebClient.create(URLs.DB_HOST(8000) + URLs.BKMS_FROM_DIR(dirID));
+        return client.get().header("Authorization", userID)
+                .exchangeToFlux(resp -> {
+                    return resp.bodyToFlux(ReqResp.class)
+                            .map(reqResp -> {
+                                LinkedHashMap rawData = (LinkedHashMap) reqResp.getData();
+                                if (rawData == null) return new ReqResp<>(null, "No bookmark found");
+                                BookmarkModel data = new BookmarkModel((String) rawData.get("id"), (String) rawData.get("creatorID"), (String) rawData.get("templateID"), (String) rawData.get("dirID"), (String) rawData.get("name"), (Boolean) rawData.get("public"), (HashMap<String, Object>) rawData.get("data"));
+                                String msg = reqResp.getMsg();
+                                return new ReqResp<>(data, msg);
+                            });
+                })
+                ;
+    }
+
+    public Flux<ReqResp<BookmarkModel>> getBookmarksForUser(String token) {
+        String userID = jwtService.getUserID(token);
+        WebClient client = WebClient.create(URLs.DB_HOST(8000) + URLs.BKM_GET_ALL);
+        return client.get().header("Authorization", userID)
+                .exchangeToFlux(resp -> {
+                    return resp.bodyToFlux(ReqResp.class)
+                            .map(reqResp -> {
+                                LinkedHashMap rawData = (LinkedHashMap) reqResp.getData();
+                                if (rawData == null) return new ReqResp<>(null, "No bookmark found");
+                                BookmarkModel data = new BookmarkModel((String) rawData.get("id"), (String) rawData.get("creatorID"), (String) rawData.get("templateID"), (String) rawData.get("dirID"), (String) rawData.get("name"), (Boolean) rawData.get("public"), (HashMap<String, Object>) rawData.get("data"));
+                                String msg = reqResp.getMsg();
+                                return new ReqResp<>(data, msg);
+                            });
+                });
+    }
+
+    public Flux<ReqResp<BookmarkModel>> getBookmarkFromTempID(String tempID, String jwtToken) {
+        String userID = jwtService.getUserID(jwtToken);
+        WebClient client = WebClient.create(URLs.DB_HOST(8000) + URLs.BKMS_FROM_TEMP(tempID));
         return client.get().header("Authorization", userID)
                 .exchangeToFlux(resp -> {
                     return resp.bodyToFlux(ReqResp.class)

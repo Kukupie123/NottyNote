@@ -12,10 +12,17 @@ public class URLs {
 
     public static final String TEMP_CREATE = "template/create";
     public static final String BKM_CREATE = "bookmark/create";
+    public static final String BKM_GET_ALL = "bookmark/getall/all";
+    public static final String TEMP_GET_ALL = "template/getall/all";
 
     public static String BKMS_FROM_DIR(String dirID) {
         return "bookmark/dir/" + dirID;
     }
+
+    public static String BKMS_FROM_TEMP(String tempID) {
+        return "bookmark/temp/" + tempID;
+    }
+
 
     public static String DIR_GET_DELETE(String id) {
         return "dir/" + id;

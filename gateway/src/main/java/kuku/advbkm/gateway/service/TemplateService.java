@@ -8,6 +8,7 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import util.urls.URLs;
 
@@ -66,5 +67,21 @@ public class TemplateService {
                         return ResponseEntity.status(resp.rawStatusCode()).body(new ReqResp<>(template, msg));
                     });
                 });
+    }
+
+    public Flux<ReqResp<TemplateModel>> getTemplatesByUser(String token) {
+        String userName = jwtService.getUserID(token);
+        WebClient client = WebClient.create(URLs.DB_HOST(8000) + URLs.TEMP_GET_ALL);
+        return client.get().header("Authorization", userName)
+                .exchangeToFlux(resp -> {
+                    var bodyFlux = resp.bodyToFlux(ReqResp.class);
+                    return bodyFlux.map(body -> {
+                        LinkedHashMap<String, Object> data = (LinkedHashMap<String, Object>) body.getData();
+                        var template = new TemplateModel((String) data.get("id"), (String) data.get("name"), (String) data.get("creatorID"), (List<String>) data.get("bookmarks"), (HashMap<String, TemplateField>) data.get("struct"));
+                        String msg = body.getMsg();
+                        return new ReqResp<>(template, msg);
+                    });
+                })
+                ;
     }
 }

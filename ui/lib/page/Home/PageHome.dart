@@ -4,6 +4,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ui/page/Directories/PageDir.dart';
+import 'package:ui/page/Layouts/PageLayouts.dart';
+import 'package:ui/page/Notes/PageNotes.dart';
 import 'package:ui/page/login/PageLogin.dart';
 import 'package:ui/provider/UserProvider.dart';
 
@@ -42,8 +44,8 @@ class _PageHomeState extends State<PageHome> {
             child: TabBarView(
               children: [
                 PageDir(),
-                Text("TEST"),
-                Text("data"),
+                PageNotes(),
+                PageLayouts(),
               ],
             ),
           ),

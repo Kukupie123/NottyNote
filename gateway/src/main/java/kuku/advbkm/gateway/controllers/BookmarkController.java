@@ -40,10 +40,25 @@ public class BookmarkController {
         return bookmarkService.getBookmark(id, jwtToken);
     }
 
+    @GetMapping("/getall/all")
+    public ResponseEntity<Flux<ReqResp<BookmarkModel>>> getBookmarksForUser(@RequestHeader("Authorization") String token) {
+        log.info("Getting all bookmark");
+        String jwtToken = token.substring(7);
+        var a = bookmarkService.getBookmarksForUser(jwtToken);
+        return ResponseEntity.ok(a);
+    }
+
     @GetMapping("/dir/{dirID}")
     public ResponseEntity<Flux<ReqResp<BookmarkModel>>> getBookmarksForDir(@PathVariable String dirID, @RequestHeader("Authorization") String token) {
         String jwtToken = token.substring(7);
         var a = bookmarkService.getBookmarkFromDir(dirID, jwtToken);
+        return ResponseEntity.ok(a);
+    }
+
+    @GetMapping("/temp/{tempID}")
+    public ResponseEntity<Flux<ReqResp<BookmarkModel>>> getBookmarksFromTempID(@PathVariable String tempID, @RequestHeader("Authorization") String token) {
+        String jwtToken = token.substring(7);
+        var a = bookmarkService.getBookmarkFromTempID(tempID,jwtToken);
         return ResponseEntity.ok(a);
     }
 }

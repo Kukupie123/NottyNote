@@ -1,49 +1,45 @@
-// ignore_for_file: prefer_const_literals_to_create_immutables, file_names
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ui/models/BookmarkModel.dart';
-import 'package:ui/models/BookmarkSolidModel.dart';
-import 'package:ui/models/DirectoryModel.dart';
 import 'package:ui/models/TemplateModel.dart';
-import 'package:ui/page/ViewBookmark/PageViewBookmark.dart';
-import 'package:ui/provider/ServiceProvider.dart';
-import 'package:ui/provider/UserProvider.dart';
 
-class PageDir extends StatefulWidget {
-  const PageDir({Key? key}) : super(key: key);
+import '../../models/BookmarkSolidModel.dart';
+import '../../provider/ServiceProvider.dart';
+import '../../provider/UserProvider.dart';
+import '../ViewBookmark/PageViewBookmark.dart';
+
+class PageLayouts extends StatefulWidget {
+  const PageLayouts({Key? key}) : super(key: key);
 
   @override
-  State<PageDir> createState() => _PageDirState();
+  State<PageLayouts> createState() => _PageLayoutsState();
 }
 
-class _PageDirState extends State<PageDir> {
-  List<DirModel> dirs = [];
+class _PageLayoutsState extends State<PageLayouts> {
+  List<TemplateModel> templates = [];
   List<BookmarkModel> bookmarks = [];
-  String currentDirID = "*";
+  String currentTemplate = "";
 
   @override
   Widget build(BuildContext context) {
-    print("Current dir is $currentDirID");
-    return SizedBox(
+    return Container(
       height: MediaQuery.of(context).size.height * 0.95,
       child: SingleChildScrollView(
         child: Column(
           children: [
-            //Directory loader
             FutureBuilder(
-              future: loadRootDirs(),
+              future: _loadTemplates(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.done) {
                   return Container(
                     color: Colors.grey,
                     height: MediaQuery.of(context).size.height * 0.5,
                     child: ListView(
-                      children: dirs.map((e) {
+                      children: templates.map((e) {
                         return GestureDetector(
                             onTap: () {
                               setState(() {
-                                currentDirID = e.id;
+                                currentTemplate = e.id;
                               });
                             },
                             child: Card(
@@ -60,7 +56,7 @@ class _PageDirState extends State<PageDir> {
             ),
             //Bookmarks loader
             FutureBuilder(
-              future: loadDirBookmarks(),
+              future: _loadDirBookmarks(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.done) {
                   return Container(
@@ -99,6 +95,23 @@ class _PageDirState extends State<PageDir> {
     );
   }
 
+  Future<void> _loadTemplates() async {
+    var serviceProvider = Provider.of<ServiceProvider>(context, listen: false);
+    var userProvider = Provider.of<UserProvider>(context, listen: false);
+
+    templates =
+        await serviceProvider.getTemplatesForUser(userProvider.jwtToken!);
+  }
+
+  Future<void> _loadDirBookmarks() async {
+    var serviceProvider = Provider.of<ServiceProvider>(context, listen: false);
+
+    var userProvider = Provider.of<UserProvider>(context, listen: false);
+
+    bookmarks = await serviceProvider.getBookmarkListFromTempID(
+        userProvider.jwtToken!, currentTemplate);
+  }
+
   Future<TemplateModel> _getTemplate(String templateID) async {
     var serviceProvider = Provider.of<ServiceProvider>(context, listen: false);
 
@@ -106,26 +119,5 @@ class _PageDirState extends State<PageDir> {
 
     return await serviceProvider.getTemplateByID(
         userProvider.jwtToken!, templateID);
-  }
-
-  Future<void> loadRootDirs() async {
-    var serviceProvider = Provider.of<ServiceProvider>(context, listen: false);
-
-    var userProvider = Provider.of<UserProvider>(context, listen: false);
-
-    serviceProvider.getTemplateByID(
-        userProvider.jwtToken!, "*");
-
-    dirs = await serviceProvider.getChildrenDirs(
-        userProvider.jwtToken!, currentDirID);
-  }
-
-  Future<void> loadDirBookmarks() async {
-    var serviceProvider = Provider.of<ServiceProvider>(context, listen: false);
-
-    var userProvider = Provider.of<UserProvider>(context, listen: false);
-
-    bookmarks = await serviceProvider.getBookmarkListFromDirID(
-        userProvider.jwtToken!, currentDirID);
   }
 }

@@ -7,6 +7,7 @@ import kuku.advbkm.gateway.service.TemplateService;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @CrossOrigin(value = "**") //Allow all origin, all headers, All Http methods.
@@ -34,6 +35,13 @@ public class TempController {
         log.info("Get Template with id {}", id);
         String jwtToken = auth.substring(7);
         return templateService.getTemplate(id, jwtToken);
+    }
+
+    @GetMapping("/getall/all")
+    public ResponseEntity<Flux<ReqResp<TemplateModel>>> getTemplatesByUserID(@RequestHeader("Authorization") String auth) {
+        String jwtToken = auth.substring(7);
+        var a = templateService.getTemplatesByUser(jwtToken);
+        return ResponseEntity.ok(a);
     }
 
     public @DeleteMapping("/{id}")

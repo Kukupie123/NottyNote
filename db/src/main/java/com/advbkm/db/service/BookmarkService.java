@@ -322,6 +322,20 @@ public class BookmarkService {
                 });
     }
 
+    public Flux<EntityBookmark> getBookmarks(String userID) {
+        return repoConnector.findById(userID).switchIfEmpty(Mono.error(new ResponseException("User not found in connector", 404)))
+                .flatMapMany(entityConnector -> Flux.fromIterable(entityConnector.getBookmarks().stream().toList()))
+                .flatMap(s -> repoBookmark.findById(s));
+    }
+
+    public Flux<EntityBookmark> getBookmarksFromTempID(String tempID, String userID) {
+        return repoTemplate.findById(tempID).switchIfEmpty(Mono.error(new ResponseException("Template not found", 404)))
+                .flatMapMany(
+                        template -> Flux.fromIterable(template.getBookmarks().stream().toList()))
+                .flatMap(s -> repoBookmark.findById(s));
+
+    }
+
     public Flux<EntityBookmark> getBookmarksFromDir(String dirID, String userID) {
         /*
         1. Get dir and validate the creator ID

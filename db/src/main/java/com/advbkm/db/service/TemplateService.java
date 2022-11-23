@@ -95,6 +95,12 @@ public class TemplateService {
                 });
     }
 
+    public Flux<EntityTemplate> getTemplatesForUser(String userID) {
+        return repoConnector.findById(userID).switchIfEmpty(Mono.error(new ResponseException("User not found", 404)))
+                .flatMapMany(entityConnector -> Flux.fromIterable(entityConnector.getTemplates().stream().toList()))
+                .flatMap(s -> repoTemp.findById(s));
+    }
+
 
     public Mono<Boolean> deleteTemplate(String templateID, String userID) {
         /*

@@ -73,6 +73,20 @@ class ServiceProvider {
         id, creatorID, name, parentID, castedChildren, castedBookmarks);
   }
 
+  List<DirModel> _createDirsFromRespBody(String respBody) {
+    List<dynamic> dataList = jsonDecode(respBody);
+    List<String> dataListString = [];
+    for (Map s in dataList) {
+      dataListString.add(jsonEncode(s));
+    }
+    List<DirModel> dirs = [];
+    for (String s in dataListString) {
+      var a = _createDirFromRespBody(s);
+      dirs.add(a);
+    }
+    return dirs;
+  }
+
   Future<DirModel> getDir(String jwtToken, String dirID) async {
     //GET http://localhost:8080/api/v1/gate/dir/{{id}}
     String url = "http://localhost:8080/api/v1/gate/dir/$dirID";
@@ -92,22 +106,7 @@ class ServiceProvider {
       Uri.parse(url),
       headers: {"Authorization": "Bearer $jwtToken"},
     );
-
-    //The body will have a list of {data,msg} as string. We decode it to get a list of it as map but flutter sees it as List<dynamic>
-    List<dynamic> dataList = jsonDecode(resp
-        .body); //List<dynamic>  [{data: "", msg: ""}]. Probably because I return a flux from the server which is treated as a list
-    List<String> dataListString =
-        []; //To store the map as json String so that we can pass it to another function which will create DirModel for us
-    //iterate and turn the Map into a json String
-    for (Map s in dataList) {
-      dataListString.add(jsonEncode(s));
-    }
-    List<DirModel> dirs = [];
-    for (String s in dataListString) {
-      var a = _createDirFromRespBody(s);
-      dirs.add(a);
-    }
-    return dirs;
+    return _createDirsFromRespBody(resp.body);
   }
 
   //BOOKMARK SERVICE---------------------
@@ -117,12 +116,34 @@ class ServiceProvider {
         data['dirID'], data['name'], data['data']);
   }
 
+  List<BookmarkModel> _createBookmarksFromRespBody(String respBody) {
+    List<BookmarkModel> bookmarks = [];
+    List<dynamic> dataList = jsonDecode(respBody);
+    List<String> dataListString = [];
+    for (dynamic d in dataList) {
+      dataListString.add(jsonEncode(d));
+    }
+    for (String data in dataListString) {
+      bookmarks.add(_createBookmarkFromRespBody(data));
+    }
+    print(bookmarks.toString());
+    return bookmarks;
+  }
+
   Future<BookmarkModel> getBookmarkByID(
       String jwtToken, String bookmarkID) async {
     String url = "http://localhost:8080/api/v1/gate/bookmark/$bookmarkID";
     var resp = await http
         .get(Uri.parse(url), headers: {"Authorization": "Bearer  $jwtToken"});
     return _createBookmarkFromRespBody(resp.body);
+  }
+
+  Future<List<BookmarkModel>> getBookmarksByToken(String jwtToken) async {
+    String url = "http://localhost:8080/api/v1/gate/bookmark/getall/all";
+    var resp = await http
+        .get(Uri.parse(url), headers: {"Authorization": "Bearer  $jwtToken"});
+
+    return _createBookmarksFromRespBody(resp.body);
   }
 
   Future<List<BookmarkModel>> getBookmarkListFromDirID(
@@ -134,34 +155,22 @@ class ServiceProvider {
     if (resp.statusCode != 200) {
       throw Exception("Status code ${resp.statusCode}");
     }
+    return _createBookmarksFromRespBody(resp.body);
+  }
 
-    List<BookmarkModel> bookmarks = [];
-    List<dynamic> dataList =
-        jsonDecode(resp.body); //Body is going to return an array of {data,msg}
+  Future<List<BookmarkModel>> getBookmarkListFromTempID(
+      String jwtToken, String tempID) async {
+    String url = "http://localhost:8080/api/v1/gate/bookmark/temp/$tempID";
+    var resp = await http
+        .get(Uri.parse(url), headers: {"Authorization": "Bearer $jwtToken"});
 
-    List<String> dataListString = [];
-    for (dynamic d in dataList) {
-      dataListString.add(jsonEncode(d));
-    }
-
-    for (String data in dataListString) {
-      bookmarks.add(_createBookmarkFromRespBody(data));
-    }
-    return bookmarks;
+    return _createBookmarksFromRespBody(resp.body);
   }
 
   //TEMPLATE SERVICE-------------
 
-  Future<TemplateModel> getTemplateByID(
-      String jwtToken, String templateID) async {
-    //GET http://localhost:8080/api/v1/gate/temp/{{id}}
-    String url = "http://localhost:8080/api/v1/gate/temp/$templateID";
-    var resp = await http
-        .get(Uri.parse(url), headers: {"Authorization": "Bearer $jwtToken"});
-    if (resp.statusCode != 200) {
-      throw Exception("Something went wrong");
-    }
-    Map<String, dynamic> data = jsonDecode(resp.body)['data'];
+  TemplateModel _createTemplateFromRespBody(String body) {
+    Map<String, dynamic> data = jsonDecode(body)['data'];
     //data['bookmarks'] is of type list<dynamic> and we can't cast it to list<String> so we need to integrate the dynamic list and cast the values ourselves
     List<String> bookmarks = [];
     for (dynamic c in data['bookmarks']) {
@@ -178,5 +187,36 @@ class ServiceProvider {
     TemplateModel template = TemplateModel(
         data['id'], data['name'], data['creatorID'], bookmarks, struct);
     return template;
+  }
+
+  List<TemplateModel> _createTemplatesFromRespBody(String body) {
+    List<dynamic> bodies = jsonDecode(body);
+    List<String> stringBodies = [];
+    for (dynamic d in bodies) {
+      stringBodies.add(jsonEncode(d));
+    }
+    List<TemplateModel> models = [];
+    for (String s in stringBodies) {
+      models.add(_createTemplateFromRespBody(s));
+    }
+    return models;
+  }
+
+  Future<TemplateModel> getTemplateByID(
+      String jwtToken, String templateID) async {
+    String url = "http://localhost:8080/api/v1/gate/temp/$templateID";
+    var resp = await http
+        .get(Uri.parse(url), headers: {"Authorization": "Bearer $jwtToken"});
+    if (resp.statusCode != 200) {
+      throw Exception("Something went wrong");
+    }
+    return _createTemplateFromRespBody(resp.body);
+  }
+
+  Future<List<TemplateModel>> getTemplatesForUser(String token) async {
+    String url = "http://localhost:8080/api/v1/gate/temp/getall/all";
+    var resp = await http
+        .get(Uri.parse(url), headers: {"Authorization": "Bearer $token"});
+    return _createTemplatesFromRespBody(resp.body);
   }
 }

@@ -53,10 +53,30 @@ public class BookmarkController {
      * @return Bookmark Entity as JSON
      */
     @GetMapping("/{id}")
-    public Mono<ResponseEntity<ReqResp<EntityBookmark>>> getBookmark(@PathVariable String id, @RequestHeader("Authorization") String userID) {
-        return bookmarkService.getBookmark(id, userID)
-                .map(bookmark -> ResponseEntity.ok(new ReqResp<>(bookmark, "")))
-                ;
+    public Object getBookmark(@PathVariable String id, @RequestHeader("Authorization") String userID) {
+        if (!id.equalsIgnoreCase("*"))
+            return bookmarkService.getBookmark(id, userID)
+                    .map(bookmark -> ResponseEntity.ok(new ReqResp<>(bookmark, "")))
+                    ;
+
+        var a = bookmarkService.getBookmarks(userID)
+                .map(bookmark -> new ReqResp<>(bookmark, ""));
+        return ResponseEntity.ok(a);
+    }
+
+    @GetMapping("/getall/all")
+    public ResponseEntity<Flux<ReqResp<EntityBookmark>>> getBookmarksOfUser(@RequestHeader("Authorization") String userID) {
+        log.info("Getting all bookmark for user");
+        var a = bookmarkService.getBookmarks(userID)
+                .map(bookmark -> new ReqResp<>(bookmark, ""));
+        return ResponseEntity.ok(a);
+    }
+
+    @GetMapping("/temp/{tempID}")
+    public ResponseEntity<Flux<ReqResp<EntityBookmark>>> getBookmarksFromTemplateID(@PathVariable String tempID, @RequestHeader("Authorization") String userID) {
+        var a = bookmarkService.getBookmarksFromTempID(tempID, userID)
+                .map(bookmark -> new ReqResp<>(bookmark, ""));
+        return ResponseEntity.ok(a);
     }
 
     /**
@@ -70,6 +90,7 @@ public class BookmarkController {
                 .map(bookmark -> new ReqResp<>(bookmark, ""));
         return ResponseEntity.ok(a);
     }
+
 }
 
 
