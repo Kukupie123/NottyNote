@@ -3,7 +3,6 @@ package kuku.advbkm.gateway.controllers;
 
 import kuku.advbkm.gateway.models.DirectoryModel;
 import kuku.advbkm.gateway.models.ReqResp.ReqResp;
-import kuku.advbkm.gateway.models.ResponseExceptionModel;
 import kuku.advbkm.gateway.service.DbDirService;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.ResponseEntity;
@@ -11,7 +10,6 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-@CrossOrigin(value = "**") //Allow all origin, all headers, All Http methods.
 @Log4j2
 @RestController()
 @RequestMapping("/api/v1/gate/dir/")
@@ -28,7 +26,7 @@ public class DirController {
      */
     public @PostMapping("/create")
     Mono<ResponseEntity<ReqResp<String>>> createDir(@RequestBody DirectoryModel reqDir, @RequestHeader("Authorization") String authHeader) {
-
+        log.info("Creating folder with name {}", reqDir.getName());
         //Why no safety checks? Because to be access this endpoint you have to be authenticated in the first place
         String jwtToken = authHeader.substring(7);
 
@@ -60,7 +58,7 @@ public class DirController {
         log.info("Get childrenDirs with auth {} and parent ID {}", jwtToken, parentID);
 
         var a = dbService.getChildrenDirs(parentID, jwtToken).map(directoryModelReqResp -> {
-            log.info("Returning {}",directoryModelReqResp.getData());
+            log.info("Returning {}", directoryModelReqResp.getData());
             return directoryModelReqResp;
         });
 

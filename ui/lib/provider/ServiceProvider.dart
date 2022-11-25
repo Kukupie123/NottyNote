@@ -87,6 +87,26 @@ class ServiceProvider {
     return dirs;
   }
 
+  Future<String> createDir(
+      String jwtToken, String dirName, bool isPublic, String parentID) async {
+    String url = "http://localhost:8080/api/v1/gate/dir/create";
+    if (parentID == "*") parentID = "";
+    var body = jsonEncode({
+      "name": dirName,
+      "isPublic": isPublic,
+      "parent": parentID,
+    });
+    var resp = await http.post(Uri.parse(url),
+        headers: {
+          "Authorization": "Bearer $jwtToken",
+          "Content-Type": "application/json"
+        },
+        body: body);
+    if (resp.statusCode == 200) return resp.body;
+    throw Exception(
+        jsonDecode(resp.body)['msg'] + "status code ${resp.statusCode}");
+  }
+
   Future<DirModel> getDir(String jwtToken, String dirID) async {
     //GET http://localhost:8080/api/v1/gate/dir/{{id}}
     String url = "http://localhost:8080/api/v1/gate/dir/$dirID";

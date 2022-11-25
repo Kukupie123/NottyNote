@@ -1,4 +1,4 @@
-// ignore_for_file: prefer_const_literals_to_create_immutables, file_names
+// ignore_for_file: prefer_const_literals_to_create_immutables, file_names, prefer_const_constructors
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -7,6 +7,8 @@ import 'package:ui/models/BookmarkSolidModel.dart';
 import 'package:ui/models/DirectoryModel.dart';
 import 'package:ui/models/TemplateModel.dart';
 import 'package:ui/page/ViewBookmark/PageViewBookmark.dart';
+import 'package:ui/page/create_dir/pageCreateDir.dart';
+import 'package:ui/page/create_note/PageCreateNote.dart';
 import 'package:ui/provider/ServiceProvider.dart';
 import 'package:ui/provider/UserProvider.dart';
 
@@ -21,15 +23,40 @@ class _PageDirState extends State<PageDir> {
   List<DirModel> dirs = [];
   List<BookmarkModel> bookmarks = [];
   String currentDirID = "*";
+  String currentFolderName = "ROOT";
 
   @override
   Widget build(BuildContext context) {
-    print("Current dir is $currentDirID");
     return SizedBox(
       height: MediaQuery.of(context).size.height * 0.95,
       child: SingleChildScrollView(
         child: Column(
           children: [
+            Text("Current Dir : $currentFolderName"),
+            Row(
+              mainAxisSize: MainAxisSize.max,
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                TextButton(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) =>
+                            PageCreateDir(currentDirID, currentFolderName),
+                      );
+                    },
+                    child: Text("Create new Directory")),
+                TextButton(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => PageCreateNote(),
+                      );
+                    },
+                    child: Text("Create new Note Note")),
+                TextButton(onPressed: () {}, child: Text("Create Notty Layout"))
+              ],
+            ),
             //Directory loader
             FutureBuilder(
               future: loadRootDirs(),
@@ -44,6 +71,7 @@ class _PageDirState extends State<PageDir> {
                             onTap: () {
                               setState(() {
                                 currentDirID = e.id;
+                                currentFolderName = e.name;
                               });
                             },
                             child: Card(
@@ -113,8 +141,7 @@ class _PageDirState extends State<PageDir> {
 
     var userProvider = Provider.of<UserProvider>(context, listen: false);
 
-    serviceProvider.getTemplateByID(
-        userProvider.jwtToken!, "*");
+    serviceProvider.getTemplateByID(userProvider.jwtToken!, "*");
 
     dirs = await serviceProvider.getChildrenDirs(
         userProvider.jwtToken!, currentDirID);
