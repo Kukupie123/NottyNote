@@ -1,4 +1,4 @@
-// ignore_for_file: prefer_const_literals_to_create_immutables, prefer_const_constructors
+// ignore_for_file: prefer_const_literals_to_create_immutables, prefer_const_constructors, curly_braces_in_flow_control_structures
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -7,7 +7,9 @@ import 'package:ui/provider/ServiceProvider.dart';
 import 'package:ui/provider/UserProvider.dart';
 
 class PageCreateNote extends StatefulWidget {
-  const PageCreateNote({Key? key}) : super(key: key);
+  final String dirID;
+
+  const PageCreateNote(this.dirID, {Key? key}) : super(key: key);
 
   @override
   State<PageCreateNote> createState() => _PageCreateNoteState();
@@ -52,6 +54,10 @@ class _PageCreateNoteState extends State<PageCreateNote> {
                           .map((e) => TextButton(
                               onPressed: () {
                                 setState(() {
+                                  if (currentTemplate == e) {
+                                    currentTemplate = null;
+                                    return;
+                                  }
                                   currentTemplate = e;
                                 });
                               },
@@ -85,13 +91,15 @@ class _PageCreateNoteState extends State<PageCreateNote> {
     if (currentTemplate == null) return [];
     List<Widget> widgets = [];
     widgets.add(Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.start,
       children: [
-        Text("Name of bookmark : "),
         Container(
           width: 200,
           height: 200,
           child: TextField(
             controller: titleController,
+            decoration: InputDecoration(hintText: "Name of bookmark"),
           ),
         ),
       ],
@@ -103,15 +111,18 @@ class _PageCreateNoteState extends State<PageCreateNote> {
       bool isOptional = value.isOptional;
       switch (fieldType) {
         case "TEXT":
-          textControllers[key] = TextEditingController();
+          if (!textControllers.containsKey(key))
+            textControllers[key] = TextEditingController();
           widgets.add(Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              Text("$key : "),
               Container(
                 width: 200,
                 height: 200,
                 child: TextField(
                   controller: textControllers[key],
+                  decoration: InputDecoration(hintText: key),
                 ),
               ),
               Text(" Is Optional? : $isOptional")
@@ -119,15 +130,18 @@ class _PageCreateNoteState extends State<PageCreateNote> {
           ));
           break;
         case "LINK":
-          textControllers[key] = TextEditingController();
+          if (!textControllers.containsKey(key))
+            textControllers[key] = TextEditingController();
           widgets.add(Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              Text("$key : "),
               Container(
                 width: 200,
                 height: 200,
                 child: TextField(
                   controller: textControllers[key],
+                  decoration: InputDecoration(hintText: key),
                 ),
               ),
               Text(" Is Optional? : $isOptional")
@@ -135,8 +149,11 @@ class _PageCreateNoteState extends State<PageCreateNote> {
           ));
           break;
         case "LIST_TEXT":
-          textlists[key] = _ListField([], TextEditingController());
+          if (!textlists.containsKey(key))
+            textlists[key] = _ListField([], TextEditingController());
           widgets.add(Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
               Text("$key : "),
               Container(
@@ -151,6 +168,7 @@ class _PageCreateNoteState extends State<PageCreateNote> {
                 width: 200,
                 child: TextField(
                   controller: textlists[key]!.textEditingController,
+                  decoration: InputDecoration(hintText: key),
                   onSubmitted: (value) {
                     setState(() {
                       textlists[key]!.values.add(value);
@@ -162,15 +180,21 @@ class _PageCreateNoteState extends State<PageCreateNote> {
           ));
           break;
         case "LIST_LINK":
-          textlists[key] = _ListField([], TextEditingController());
+          if (!textlists.containsKey(key))
+            textlists[key] = _ListField([], TextEditingController());
           widgets.add(Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
               Text("$key : "),
               Container(
                 height: 200,
                 width: 200,
                 child: ListView(
-                  children: textlists[key]!.values.map((e) => Text(e)).toList(),
+                  children: textlists[key]!.values.map((e) {
+                    print("list element $e");
+                    return Text(e);
+                  }).toList(),
                 ),
               ),
               Container(
@@ -178,8 +202,10 @@ class _PageCreateNoteState extends State<PageCreateNote> {
                 width: 200,
                 child: TextField(
                   controller: textlists[key]!.textEditingController,
+                  decoration: InputDecoration(hintText: key),
                   onSubmitted: (value) {
                     setState(() {
+                      print("ADDED $value");
                       textlists[key]!.values.add(value);
                     });
                   },
@@ -190,7 +216,27 @@ class _PageCreateNoteState extends State<PageCreateNote> {
           break;
       }
     });
+    widgets.add(
+        TextButton(onPressed: _createNote, child: Text("Create Bookmark")));
     return widgets;
+  }
+
+  Future<void> _createNote() async {
+    if (currentTemplate == null) return;
+    Map data = {};
+    textlists.forEach((key, value) {
+      data[key] = value.values;
+    });
+    textControllers.forEach((key, value) {
+      data[key] = value.text;
+    });
+    ServiceProvider serviceProvider =
+        Provider.of<ServiceProvider>(context, listen: false);
+    UserProvider userProvider =
+        Provider.of<UserProvider>(context, listen: false);
+
+    String id = await serviceProvider.createBookmark(userProvider.jwtToken!,
+        currentTemplate!.id, widget.dirID, titleController.text, data);
   }
 }
 

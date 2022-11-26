@@ -25,6 +25,7 @@ public class BookmarkController {
     @PostMapping("/create")
     public Mono<ResponseEntity<ReqResp<String>>> createBookmark(@RequestBody BookmarkModel bookmarkModel, @RequestHeader("Authorization") String token) {
         String jwtToken = token.substring(7);
+        log.info("Create template called with body {}", bookmarkModel.toString());
         return bookmarkService.createBookmark(bookmarkModel, jwtToken);
     }
 
@@ -58,7 +59,7 @@ public class BookmarkController {
     @GetMapping("/temp/{tempID}")
     public ResponseEntity<Flux<ReqResp<BookmarkModel>>> getBookmarksFromTempID(@PathVariable String tempID, @RequestHeader("Authorization") String token) {
         String jwtToken = token.substring(7);
-        var a = bookmarkService.getBookmarkFromTempID(tempID,jwtToken);
+        var a = bookmarkService.getBookmarkFromTempID(tempID, jwtToken);
         return ResponseEntity.ok(a);
     }
 }

@@ -158,6 +158,29 @@ class ServiceProvider {
     return _createBookmarkFromRespBody(resp.body);
   }
 
+  Future<String> createBookmark(String jwtToken, String templateID,
+      String dirID, String bookmarkName, Map data) async {
+    if (dirID == "*" || dirID.isEmpty) throw Exception("Dir ID is * or empty");
+    Map body = {};
+    body['templateID'] = templateID;
+    body['dirID'] = dirID;
+    body['name'] = bookmarkName;
+    body['data'] = data;
+
+    String encodedBody = jsonEncode(body);
+    String url = "http://localhost:8080/api/v1/gate/bookmark/create";
+    var resp = await http.post(Uri.parse(url),
+        headers: {
+          "Authorization": "Bearer $jwtToken",
+          "Content-Type": "application/json"
+        },
+        body: encodedBody);
+
+    print("sc ${resp.statusCode} and body ${resp.body}");
+
+    return resp.body;
+  }
+
   Future<List<BookmarkModel>> getBookmarksByToken(String jwtToken) async {
     String url = "http://localhost:8080/api/v1/gate/bookmark/getall/all";
     var resp = await http

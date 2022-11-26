@@ -62,6 +62,8 @@ public class TemplateService {
                     var bodyMono = resp.bodyToMono(ReqResp.class);
                     return bodyMono.map(body -> {
                         LinkedHashMap<String, Object> data = (LinkedHashMap<String, Object>) body.getData();
+                        if (data == null)
+                            return ResponseEntity.status(404).body(new ReqResp<>(null, "Template is null"));
                         var template = new TemplateModel((String) data.get("id"), (String) data.get("name"), (String) data.get("creatorID"), (List<String>) data.get("bookmarks"), (HashMap<String, TemplateField>) data.get("struct"));
                         String msg = body.getMsg();
                         return ResponseEntity.status(resp.rawStatusCode()).body(new ReqResp<>(template, msg));

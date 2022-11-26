@@ -50,7 +50,7 @@ class _PageDirState extends State<PageDir> {
                     onPressed: () {
                       showDialog(
                         context: context,
-                        builder: (context) => PageCreateNote(),
+                        builder: (context) => PageCreateNote(currentDirID),
                       );
                     },
                     child: Text("Create new Note Note")),
