@@ -8,6 +8,7 @@ import 'package:ui/models/DirectoryModel.dart';
 import 'package:ui/models/TemplateModel.dart';
 import 'package:ui/page/ViewBookmark/PageViewBookmark.dart';
 import 'package:ui/page/create_dir/pageCreateDir.dart';
+import 'package:ui/page/create_layout/PageCreatelayout.dart';
 import 'package:ui/page/create_note/PageCreateNote.dart';
 import 'package:ui/provider/ServiceProvider.dart';
 import 'package:ui/provider/UserProvider.dart';
@@ -54,7 +55,12 @@ class _PageDirState extends State<PageDir> {
                       );
                     },
                     child: Text("Create new Note Note")),
-                TextButton(onPressed: () {}, child: Text("Create Notty Layout"))
+                TextButton(onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => PageCreateLayout(),
+                  );
+                }, child: Text("Create Notty Layout"))
               ],
             ),
             //Directory loader

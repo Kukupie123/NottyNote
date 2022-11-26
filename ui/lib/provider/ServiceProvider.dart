@@ -245,6 +245,24 @@ class ServiceProvider {
     return models;
   }
 
+  Future<String> createTemplate(
+      String jwtToken, String templateName, Map struct) async {
+    String url = "http://localhost:8080/api/v1/gate/temp/create";
+    Map body = {"name": templateName};
+    body['struct'] = struct;
+    String encodedBody = jsonEncode(body);
+    print(encodedBody);
+    var resp = await http.post(Uri.parse(url),
+        headers: {
+          "Authorization": "Bearer $jwtToken",
+          "Content-Type": "application/json"
+        },
+        body: encodedBody);
+
+    print("SC : ${resp.statusCode} and body : ${resp.body}");
+    return jsonDecode(resp.body)['data'];
+  }
+
   Future<TemplateModel> getTemplateByID(
       String jwtToken, String templateID) async {
     String url = "http://localhost:8080/api/v1/gate/temp/$templateID";
