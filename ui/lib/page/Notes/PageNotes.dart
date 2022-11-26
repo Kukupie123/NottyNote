@@ -19,6 +19,10 @@ class PageNotes extends StatefulWidget {
 
 class _PageNotesState extends State<PageNotes> {
   List<BookmarkModel>? bookmarks;
+  late final serviceProvider =
+      Provider.of<ServiceProvider>(context, listen: false);
+
+  late final userProvider = Provider.of<UserProvider>(context, listen: false);
 
   @override
   Widget build(BuildContext context) {
@@ -28,20 +32,32 @@ class _PageNotesState extends State<PageNotes> {
         if (snapshot.connectionState == ConnectionState.done) {
           return Column(
             children: bookmarks!
-                .map((e) => TextButton(
-                    onPressed: () async {
-                      TemplateModel template = await _getTemplate(e.templateID);
-                      var bookmarkSolid = BookmarkSolidModel(template, e);
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                PageViewBookmark(bookmark: bookmarkSolid),
-                          ));
-                    },
-                    child: Card(
-                      child: Text(e.name),
-                    )))
+                .map((e) => Row(
+                      children: [
+                        TextButton(
+                          onPressed: () async {
+                            TemplateModel template =
+                                await _getTemplate(e.templateID);
+                            var bookmarkSolid = BookmarkSolidModel(template, e);
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      PageViewBookmark(bookmark: bookmarkSolid),
+                                ));
+                          },
+                          child: Card(
+                            child: Text(e.name),
+                          ),
+                        ),
+                        IconButton(
+                            onPressed: () {
+                              serviceProvider.deleteBookmark(
+                                  userProvider.jwtToken!, e.id);
+                            },
+                            icon: Icon(Icons.delete))
+                      ],
+                    ))
                 .toList(),
           );
         }

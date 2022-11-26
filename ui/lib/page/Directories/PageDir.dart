@@ -25,6 +25,16 @@ class _PageDirState extends State<PageDir> {
   List<BookmarkModel> bookmarks = [];
   String currentDirID = "*";
   String currentFolderName = "ROOT";
+  late final ServiceProvider serviceProvider =
+      Provider.of<ServiceProvider>(context, listen: false);
+
+  late final UserProvider userProvider =
+      Provider.of<UserProvider>(context, listen: false);
+
+  @override
+  void initState() {
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,12 +65,14 @@ class _PageDirState extends State<PageDir> {
                       );
                     },
                     child: Text("Create new Note Note")),
-                TextButton(onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => PageCreateLayout(),
-                  );
-                }, child: Text("Create Notty Layout"))
+                TextButton(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => PageCreateLayout(),
+                      );
+                    },
+                    child: Text("Create Notty Layout"))
               ],
             ),
             //Directory loader
@@ -81,8 +93,15 @@ class _PageDirState extends State<PageDir> {
                               });
                             },
                             child: Card(
-                              child: Column(
-                                children: [Text(e.name)],
+                              child: Row(
+                                children: [
+                                  Text(e.name),
+                                  IconButton(
+                                      onPressed: () {
+                                        deleteDir(e.id);
+                                      },
+                                      icon: Icon(Icons.delete))
+                                ],
                               ),
                             ));
                       }).toList(),
@@ -116,8 +135,15 @@ class _PageDirState extends State<PageDir> {
                                   ));
                             },
                             child: Card(
-                              child: Column(
-                                children: [Text(e.name)],
+                              child: Row(
+                                children: [
+                                  Text(e.name),
+                                  IconButton(
+                                      onPressed: () {
+                                        deleteBookmark(e.id);
+                                      },
+                                      icon: Icon(Icons.delete))
+                                ],
                               ),
                             ));
                       }).toList(),
@@ -143,10 +169,6 @@ class _PageDirState extends State<PageDir> {
   }
 
   Future<void> loadRootDirs() async {
-    var serviceProvider = Provider.of<ServiceProvider>(context, listen: false);
-
-    var userProvider = Provider.of<UserProvider>(context, listen: false);
-
     serviceProvider.getTemplateByID(userProvider.jwtToken!, "*");
 
     dirs = await serviceProvider.getChildrenDirs(
@@ -154,11 +176,15 @@ class _PageDirState extends State<PageDir> {
   }
 
   Future<void> loadDirBookmarks() async {
-    var serviceProvider = Provider.of<ServiceProvider>(context, listen: false);
-
-    var userProvider = Provider.of<UserProvider>(context, listen: false);
-
     bookmarks = await serviceProvider.getBookmarkListFromDirID(
         userProvider.jwtToken!, currentDirID);
+  }
+
+  Future<void> deleteDir(String dirID) async {
+    await serviceProvider.deleteDir(userProvider.jwtToken!, dirID);
+  }
+
+  Future<void> deleteBookmark(String id) async {
+    await serviceProvider.deleteBookmark(userProvider.jwtToken!, id);
   }
 }

@@ -87,6 +87,13 @@ class ServiceProvider {
     return dirs;
   }
 
+  Future<bool> deleteDir(String jwtToken, String dirID) async {
+    String url = "http://localhost:8080/api/v1/gate/dir/$dirID";
+    var resp = await http
+        .delete(Uri.parse(url), headers: {"Authorization": "Bearer $jwtToken"});
+    return jsonDecode(resp.body)['data'];
+  }
+
   Future<String> createDir(
       String jwtToken, String dirName, bool isPublic, String parentID) async {
     String url = "http://localhost:8080/api/v1/gate/dir/create";
@@ -148,6 +155,13 @@ class ServiceProvider {
     }
     print(bookmarks.toString());
     return bookmarks;
+  }
+
+  Future<bool> deleteBookmark(String jwtToken, String id) async {
+    String url = "http://localhost:8080/api/v1/gate/bookmark/$id";
+    var resp = await http
+        .delete(Uri.parse(url), headers: {"Authorization": "Bearer $jwtToken"});
+    return jsonDecode(resp.body)['data'];
   }
 
   Future<BookmarkModel> getBookmarkByID(
@@ -243,6 +257,14 @@ class ServiceProvider {
       models.add(_createTemplateFromRespBody(s));
     }
     return models;
+  }
+
+  Future<bool> deleteTemplate(String jwtToken, String tempID) async {
+    print("DELETEING TEMPLATE $tempID");
+    String url = "http://localhost:8080/api/v1/gate/temp/$tempID";
+    var resp = await http
+        .delete(Uri.parse(url), headers: {"Authorization": "Bearer $jwtToken"});
+    return jsonDecode(resp.body)['data'];
   }
 
   Future<String> createTemplate(

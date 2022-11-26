@@ -16,6 +16,10 @@ class PageLayouts extends StatefulWidget {
 }
 
 class _PageLayoutsState extends State<PageLayouts> {
+  late final serviceProvider =
+      Provider.of<ServiceProvider>(context, listen: false);
+
+  late final userProvider = Provider.of<UserProvider>(context, listen: false);
   List<TemplateModel> templates = [];
   List<BookmarkModel> bookmarks = [];
   String currentTemplate = "";
@@ -36,7 +40,8 @@ class _PageLayoutsState extends State<PageLayouts> {
                     height: MediaQuery.of(context).size.height * 0.5,
                     child: ListView(
                       children: templates.map((e) {
-                        return GestureDetector(
+                        return Row(children: [
+                          GestureDetector(
                             onTap: () {
                               setState(() {
                                 currentTemplate = e.id;
@@ -46,7 +51,15 @@ class _PageLayoutsState extends State<PageLayouts> {
                               child: Column(
                                 children: [Text(e.name)],
                               ),
-                            ));
+                            ),
+                          ),
+                          IconButton(
+                              onPressed: () {
+                                serviceProvider.deleteTemplate(
+                                    userProvider.jwtToken!, e.id);
+                              },
+                              icon: Icon(Icons.delete))
+                        ]);
                       }).toList(),
                     ),
                   );
@@ -64,24 +77,35 @@ class _PageLayoutsState extends State<PageLayouts> {
                     height: MediaQuery.of(context).size.height * 0.5,
                     child: ListView(
                       children: bookmarks.map((e) {
-                        return GestureDetector(
-                            onTap: () async {
-                              TemplateModel template =
-                                  await _getTemplate(e.templateID);
-                              var bookmarkSolid =
-                                  BookmarkSolidModel(template, e);
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => PageViewBookmark(
-                                        bookmark: bookmarkSolid),
-                                  ));
-                            },
-                            child: Card(
-                              child: Column(
-                                children: [Text(e.name)],
+                        return Row(
+                          children: [
+                            GestureDetector(
+                              onTap: () async {
+                                TemplateModel template =
+                                    await _getTemplate(e.templateID);
+                                var bookmarkSolid =
+                                    BookmarkSolidModel(template, e);
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => PageViewBookmark(
+                                          bookmark: bookmarkSolid),
+                                    ));
+                              },
+                              child: Card(
+                                child: Column(
+                                  children: [Text(e.name)],
+                                ),
                               ),
-                            ));
+                            ),
+                            IconButton(
+                                onPressed: () {
+                                  serviceProvider.deleteBookmark(
+                                      userProvider.jwtToken!, e.id);
+                                },
+                                icon: const Icon(Icons.delete))
+                          ],
+                        );
                       }).toList(),
                     ),
                   );
@@ -96,27 +120,16 @@ class _PageLayoutsState extends State<PageLayouts> {
   }
 
   Future<void> _loadTemplates() async {
-    var serviceProvider = Provider.of<ServiceProvider>(context, listen: false);
-    var userProvider = Provider.of<UserProvider>(context, listen: false);
-
     templates =
         await serviceProvider.getTemplatesForUser(userProvider.jwtToken!);
   }
 
   Future<void> _loadDirBookmarks() async {
-    var serviceProvider = Provider.of<ServiceProvider>(context, listen: false);
-
-    var userProvider = Provider.of<UserProvider>(context, listen: false);
-
     bookmarks = await serviceProvider.getBookmarkListFromTempID(
         userProvider.jwtToken!, currentTemplate);
   }
 
   Future<TemplateModel> _getTemplate(String templateID) async {
-    var serviceProvider = Provider.of<ServiceProvider>(context, listen: false);
-
-    var userProvider = Provider.of<UserProvider>(context, listen: false);
-
     return await serviceProvider.getTemplateByID(
         userProvider.jwtToken!, templateID);
   }
