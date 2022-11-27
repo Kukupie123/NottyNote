@@ -37,17 +37,13 @@ public class BookmarkService {
         this.repoDir = repoDir;
     }
 
+    /**
+     * Create a bookmark
+     * @param bookmark bookmark entity to create
+     * @param userID userID of requester
+     * @return ID of the newly created Bookmark
+     */
     public Mono<String> createBookmark(EntityBookmark bookmark, String userID) {
-        /*
-        1. Basic validations and setting values
-        2. Validating if templateID is valid
-        3. Validating if dirID is valid
-        4. Validating if mandatory keys of templateID match up with the keys supplied
-        5. Saving the bookmark.
-        6. Add the bookmarkID to template's bookmark list
-        6. Adding bookmarkID to dir bookmarks list
-        7. Adding the bookmarkID to connector
-         */
 
         String mapFoundTemp = "foundTemp";
         String mapFoundDir = "foundDir";
@@ -63,7 +59,7 @@ public class BookmarkService {
 
 
         return repoTemplate.findById(bookmark.getTemplateID()).switchIfEmpty(Mono.error(new ResponseException("Template with specified ID not found", 404))) //Get the template
-                //validate the template returned
+                //validate the template creatorID and userID of requester
                 .flatMap(foundTemplate -> {
                     if (!foundTemplate.getCreatorID().equalsIgnoreCase(userID)) {
                         return Mono.error(new ResponseException("Template Creator ID do not match userID extracted from JWT Token", 401));
@@ -199,28 +195,19 @@ public class BookmarkService {
                     return repoConnector.save(connector)
                             .map(updatedConn -> ((EntityBookmark) map.get(mapSavedBkm)).getId());
                 })
-                //Add the bookmarkID to bookmarks list of template
                 ;
 
 
     }
 
 
+    /**
+     * Delete a bookmark, removes it from directory too
+     * @param id id of the bookmark to be deleted
+     * @param userID userID of the requester
+     * @return true if deleted successfully else false
+     */
     public Mono<Boolean> deleteBookmark(String id, String userID) {
-        /*
-        1. Get the bookmark
-        2. Get template and validate
-        2. Validate and Check if creatorID and userId match among all them
-        3. Remove the bookmarkID from template
-        4. Save the updated template
-        3. Get the directory based on ID
-        4. Delete the bookmark from dir's bookmark list
-        5. Save the updated dir
-        6. Get the connector
-        7. Update the connector bookmark list
-        8. Delete the bookmark from bookmark collection
-        DONE
-         */
 
         String mapFoundBKM = "foundBKM";
         String mapFoundDir = "foundDir";
@@ -313,6 +300,12 @@ public class BookmarkService {
                 ;
     }
 
+    /**
+     * Get a bookmark by its ID
+     * @param id Id of the bookmark
+     * @param userID userID of the requester
+     * @return Bookmark entity
+     */
     public Mono<EntityBookmark> getBookmark(String id, String userID) {
         return repoBookmark.findById(id).switchIfEmpty(Mono.error(new ResponseException("Bookmark not found", 404)))
                 .flatMap(bookmark -> {
@@ -322,12 +315,23 @@ public class BookmarkService {
                 });
     }
 
+    /**
+     * Get all the bookmarks of a user using connector table
+     * @param userID userID of the requester
+     * @return Flux of bookmarks
+     */
     public Flux<EntityBookmark> getBookmarks(String userID) {
         return repoConnector.findById(userID).switchIfEmpty(Mono.error(new ResponseException("User not found in connector", 404)))
                 .flatMapMany(entityConnector -> Flux.fromIterable(entityConnector.getBookmarks().stream().toList()))
                 .flatMap(s -> repoBookmark.findById(s));
     }
 
+    /**
+     * Get list of bookmark of a specific template
+     * @param tempID template ID of the bookmark
+     * @param userID userID of the requester
+     * @return a flux of bookmarks
+     */
     public Flux<EntityBookmark> getBookmarksFromTempID(String tempID, String userID) {
         return repoTemplate.findById(tempID).switchIfEmpty(Mono.error(new ResponseException("Template not found", 404)))
                 .flatMapMany(
@@ -336,12 +340,13 @@ public class BookmarkService {
 
     }
 
+    /**
+     * Get a lsit of bookmark that are in a specific directory
+     * @param dirID ID of the directory
+     * @param userID userID of the requester
+     * @return a flux of bookmarks
+     */
     public Flux<EntityBookmark> getBookmarksFromDir(String dirID, String userID) {
-        /*
-        1. Get dir and validate the creator ID
-        2. Get the bookmarks ID list from it
-        3. Iterate the bookmark IDs and return them
-         */
 
         return repoDir.findById(dirID).switchIfEmpty(Mono.error(new ResponseException("Directory not found", 404)))
                 //Validate creatorID

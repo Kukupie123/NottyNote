@@ -35,9 +35,14 @@ public class DirService {
     }
 
 
+    /**
+     * Create a directory
+     * @param dir directory entity
+     * @param userID userID of requester
+     * @return ID of the new dir
+     */
     public Mono<String> createDir(EntityDir dir, String userID) {
 
-        //Names of map, map that we will create inside mono to save object that will otherwise be lost during mono/flux transformation
         String mapParentDirName = "parentDir";
         String mapSavedDirName = "savedDir";
         String mapFoundConnectorName = "foundConnector";
@@ -152,6 +157,12 @@ public class DirService {
 
     }
 
+    /**
+     * Delete a directory, deletes the bookmarks it has and moves the children directories one level up.
+     * @param dirID ID of the dir to be deleted
+     * @param userID userID of the requester
+     * @return true if successful else false
+     */
     public Mono<Boolean> deleteDir(String dirID, String userID) {
         log.info("delete dir service function triggered");
         /*
@@ -194,12 +205,10 @@ public class DirService {
                 .switchIfEmpty(Mono.error(new ResponseException("Directory not found", 404)))
                 //Save targetDir to map after basic validation
                 .flatMap(targetDir -> {
-
                     if (!targetDir.getCreatorID().equalsIgnoreCase(userID))
                         return Mono.error(new ResponseException("UserID and Dir CreatorID do not match", 401));
                     Map<String, Object> map = new HashMap<>();
                     map.put(mapTargetDir, targetDir);
-                    log.info("Chain 1 : Got Directory {} from db and saved it locally", targetDir);
                     return Mono.just(map);
                 })
                 //Get Connector and save it
@@ -363,6 +372,12 @@ public class DirService {
                 );
     }
 
+    /**
+     * Get a directory based on ID, has to be owned by requester or public
+     * @param dirID ID of the DIR
+     * @param userID userID of requester
+     * @return Dir Entity
+     */
     public Mono<EntityDir> getDir(String dirID, String userID) {
         return dirRepo.findById(dirID).switchIfEmpty(Mono.error(new ResponseException("Directory with the given ID not found", 404)))
                 .flatMap(entityDir -> {
@@ -382,11 +397,7 @@ public class DirService {
      * @return List of Directories
      */
     public Flux<EntityDir> getChildrenDirs(String userID, String parentDirID) {
-        /*
-        1. Check if its has parentID or not
-        2. If not we simply get root dir list from connector and get dirs based on the list and return it
-        3. If it has root dir we access the dir and then get its children list and return it
-         */
+
         if (parentDirID == null || parentDirID.isEmpty()) {
             return Flux.error(new ResponseException("Parent ID is invalid", 403));
         }

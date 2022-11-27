@@ -33,18 +33,17 @@ public class TemplateService {
         this.repoDir = repoDir;
     }
 
+    /**
+     * Create a template
+     * @param template template to create
+     * @param userID userID of requester
+     * @return ID of the newly created template
+     */
     public Mono<String> createTemplate(EntityTemplate template, String userID) {
-         /*
-        1. Save the template
-        2. Get/Create EntityConnector
-        3. Add the templateID to Connector we found
-        4. Save the updated Connector
-         */
-
-        //Names of map, map that we will create inside mono to save object that will otherwise be lost during mono/flux transformation
         String mapSavedTemplate = "savedTemplate";
         String mapFoundConnector = "foundConnector";
 
+        //Set CreatorID and bookmarks
         template.setCreatorID(userID);
         template.setBookmarks(new ArrayList<>());
 
@@ -80,14 +79,15 @@ public class TemplateService {
 
     }
 
+    /**
+     * Get a template bu it's ID
+     * @param templateID ID of the template we want to get
+     * @param userID userID of the requester
+     * @return Template Entity
+     */
     public Mono<EntityTemplate> getTemplate(String templateID, String userID) {
-        /*
-        1. Get the template,
-        2. Return 404 if it doesn't exist
-        3. Validate userID and creator ID
-        4. Return
-         */
         return repoTemp.findById(templateID).switchIfEmpty(Mono.error(new ResponseException("Template not found", 404)))
+                //Validate CreatorID
                 .flatMap(template -> {
                     if (!template.getCreatorID().equalsIgnoreCase(userID))
                         return Mono.error(new ResponseException("CreatorID and requester do not match", 401));
@@ -95,6 +95,11 @@ public class TemplateService {
                 });
     }
 
+    /**
+     * Get list of templates created by the user
+     * @param userID userID of the requester
+     * @return a list of template
+     */
     public Flux<EntityTemplate> getTemplatesForUser(String userID) {
         return repoConnector.findById(userID).switchIfEmpty(Mono.error(new ResponseException("User not found", 404)))
                 .flatMapMany(entityConnector -> Flux.fromIterable(entityConnector.getTemplates().stream().toList()))
@@ -102,17 +107,13 @@ public class TemplateService {
     }
 
 
+    /**
+     * Delete a template using it's ID
+     * @param templateID ID of the template you want to delete
+     * @param userID userID of requester
+     * @return true if deletion was successful else false
+     */
     public Mono<Boolean> deleteTemplate(String templateID, String userID) {
-        /*
-        1. Get the templateID and validate if it's correct based on UserID
-        2. Get bookmarks list from temp and store in a list (MAP) as well as create a new list for storing dirIDs
-        3. Convert the bookmarks list into flux -> access each bookmark and store dir in map, collect the whole flux as mono list and return back the map
-        4. Now we have a list of dirIDs to work with
-        5. Collect the dirIDs into flux -> access each dir and remove the bookmarks, collect the whole flux as mono list and return map
-        6. Delete all bookmarks
-        7. Delete template
-         */
-
 
         final String mapTemp = "temp";
         final String mapBookmarks = "bookmarks";
