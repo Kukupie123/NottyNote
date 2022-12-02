@@ -62,6 +62,8 @@
                 </configuration>
             </plugin>
         </plugins>
+
+        <finalName>nottynote-db</finalName>
     </build>
 
 </project>
